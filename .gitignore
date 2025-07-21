@@ -1,11 +1,11 @@
 HELP.md
-backend/target/
+backend/target
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
 ### Config ###
-backend/config/*
+config/*
 
 ### STS ###
 .apt_generated
