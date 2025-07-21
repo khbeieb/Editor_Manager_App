@@ -20,13 +20,15 @@ services:
     ports:
       - "${MYSQL_PORT}:3306"
 
-#  frontend:
-#    build:
-#      context: ./frontend
-#    ports:
-#      - "${FRONTEND_PORT}:80"
-#    environment:
-#      - API_BASE_URL=${API_BASE_URL}
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "${FRONTEND_PORT}:80"
+    depends_on:
+      - backend
+    environment:
+      - API_BASE_URL=${API_BASE_URL}
 #
 #  e2e-tests:
 #    build:
