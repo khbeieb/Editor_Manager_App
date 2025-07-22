@@ -22,9 +22,10 @@ services:
 
   frontend:
     build:
+      dockerfile: Dockerfile.prod.dockerfile
       context: ./frontend
     ports:
-      - "${FRONTEND_PORT}:4200"
+      - "${FRONTEND_PORT}:80"
     depends_on:
       - backend
     environment:
