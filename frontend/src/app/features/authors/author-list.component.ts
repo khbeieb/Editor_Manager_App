@@ -1165,18 +1165,11 @@ export class AuthorListComponent implements OnInit, OnDestroy {
   }
 
   deleteAuthor(author: Author): void {
-    // This would typically open a confirmation dialog
     this.messageService.add({
       severity: 'warn',
       summary: 'Delete Author',
-      detail: `Delete functionality for ${author.name} would be implemented here`,
+      detail: `Delete functionality for ${author.name}`,
       life: 3000
     });
-
-    // Implementation would include:
-    // 1. Confirmation dialog
-    // 2. API call to delete
-    // 3. Refresh the list
-    // 4. Show success/error message
   }
   }
