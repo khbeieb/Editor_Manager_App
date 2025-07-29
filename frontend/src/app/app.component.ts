@@ -1,26 +1,24 @@
-import {Component, OnInit} from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {AuthorApiService} from './services/author-api.service';
-import {NgForOf, NgIf} from '@angular/common';
+import { CommonModule } from '@angular/common';
+import { MenubarModule } from 'primeng/menubar';
+import { MenuItem } from 'primeng/api';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, NgIf, NgForOf],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
+  standalone: true,
+  imports: [CommonModule, RouterOutlet, MenubarModule],
+  template: `
+    <p-menubar [model]="items"></p-menubar>
+    <div class="p-4">
+      <router-outlet></router-outlet>
+    </div>
+  `,
 })
-export class AppComponent implements OnInit {
-  authors: any[] = [];
-
-  constructor(private authorApi: AuthorApiService) {}
-
-  ngOnInit(): void {
-    this.authorApi.getAuthors().subscribe({
-      next: (res: any) => {
-        console.log('✅ Response:', res);
-        this.authors = res.data;
-      },
-      error: (err) => console.error('❌ Error:', err)
-    });
-  }
+export class AppComponent {
+  items: MenuItem[] = [
+    { label: 'Authors', routerLink: '/authors' },
+    { label: 'Books', routerLink: '/books' },
+    { label: 'Magazines', routerLink: '/magazines' },
+  ];
 }

@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN yarn install
 
 # Copy the rest of your app's code
 COPY . .
@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 4200
 
 # Start Angular in dev mode
-CMD ["npm", "start"]
+CMD ["yarn", "start"]
