@@ -22,7 +22,7 @@ export class BookApiService {
         console.error('Error adding book:', error);
         return of({
           statusCode: 500,
-          message: 'Failed to add book',
+          message: 'Failed to add book: ' + error.error.message,
           data: null as any,
           timestamp: new Date().toISOString(),
         });

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe, NgForOf, NgIf } from '@angular/common';
+import { CommonModule, DatePipe, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
-import { ButtonModule, ButtonDirective, ButtonIcon, ButtonLabel } from 'primeng/button';
+import { ButtonModule, ButtonDirective } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -10,7 +10,7 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { RouterLink, Router } from '@angular/router';
-import {Observable, BehaviorSubject, combineLatest, Subject, of} from 'rxjs';
+import {Observable, BehaviorSubject, combineLatest, Subject, of, filter, tap} from 'rxjs';
 import { map, startWith, takeUntil, catchError, finalize } from 'rxjs/operators';
 import { MessageService } from 'primeng/api';
 import { BookApiService } from '../../services/book-api.service';
@@ -19,7 +19,6 @@ import { ApiResponse } from '../../models/api-response.model';
 
 interface FilterOptions {
   searchTerm: string;
-  genreFilter: string;
   sortBy: string;
   sortOrder: 'asc' | 'desc';
 }
@@ -30,14 +29,11 @@ interface FilterOptions {
   imports: [
     CommonModule,
     DatePipe,
-    NgForOf,
     NgIf,
     FormsModule,
     TableModule,
     ButtonModule,
     ButtonDirective,
-    ButtonIcon,
-    ButtonLabel,
     CardModule,
     TagModule,
     ToastModule,
@@ -738,19 +734,16 @@ export class BookListComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private filtersSubject = new BehaviorSubject<FilterOptions>({
     searchTerm: '',
-    genreFilter: '',
     sortBy: 'title',
     sortOrder: 'asc'
   });
 
   filters: FilterOptions = {
     searchTerm: '',
-    genreFilter: '',
     sortBy: 'title',
     sortOrder: 'asc'
   };
 
-  genreOptions: Array<{ label: string; value: string }> = [];
   sortOptions = [
     { label: 'Title', value: 'title' },
     { label: 'Publication Date', value: 'publicationDate' },
@@ -773,6 +766,7 @@ export class BookListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadBooks();
+    this.filtersSubject.next(this.filters);
     this.setupFilteredBooks();
   }
 
@@ -784,9 +778,10 @@ export class BookListComponent implements OnInit, OnDestroy {
   private loadBooks(): void {
     this.isLoading = true;
     this.hasError = false;
+
     this.books$ = this.bookApiService.getBooks().pipe(
       catchError((error) => {
-        console.error('Failed to load books:', error);
+        console.error('[loadBooks] Failed to load books:', error);
         this.hasError = true;
         this.messageService.add({
           severity: 'error',
@@ -794,35 +789,44 @@ export class BookListComponent implements OnInit, OnDestroy {
           detail: 'Could not load books. Please try again.',
           life: 5000
         });
-        return of({data: []} as unknown as ApiResponse<Book[]>);
-
+        throw error;
       }),
       finalize(() => {
         this.isLoading = false;
         this.isRefreshing = false;
       }),
-      takeUntil(this.destroy$)
+      takeUntil(this.destroy$),
+
     );
+
+    // Manual subscription for debugging:
+    this.books$.subscribe();
   }
 
   private setupFilteredBooks(): void {
     this.filteredBooks$ = combineLatest([
       this.books$.pipe(
-        map(response => response?.data || []),
-        startWith([])
+        filter(response => !!response && !!response.data),
+        map(response => {
+          return response.data!;
+        })
       ),
-      this.filtersSubject.asObservable()
-    ]).pipe(
-      map(([books, filters]) => this.applyFilters(books, filters)),
-      takeUntil(this.destroy$)
-    );
+      this.filtersSubject.asObservable().pipe(
+      )
+    ])
+      .pipe(
+        map(([books, filters]) => {
+          const result = this.applyFilters(books, filters);
+          return result;
+        }),
+        takeUntil(this.destroy$)
+      );
   }
 
 
 
   private applyFilters(books: Book[], filters: FilterOptions): Book[] {
     let filtered = [...books];
-
     // Apply search filter
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
@@ -857,7 +861,6 @@ export class BookListComponent implements OnInit, OnDestroy {
       if (aValue > bValue) return filters.sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-
     return filtered;
   }
 
@@ -868,7 +871,6 @@ export class BookListComponent implements OnInit, OnDestroy {
   hasActiveFilters(): boolean {
     return !!(
       this.filters.searchTerm ||
-      this.filters.genreFilter ||
       this.filters.sortBy !== 'title' ||
       this.filters.sortOrder !== 'asc'
     );
@@ -877,7 +879,6 @@ export class BookListComponent implements OnInit, OnDestroy {
   clearFilters(): void {
     this.filters = {
       searchTerm: '',
-      genreFilter: '',
       sortBy: 'title',
       sortOrder: 'asc'
     };
