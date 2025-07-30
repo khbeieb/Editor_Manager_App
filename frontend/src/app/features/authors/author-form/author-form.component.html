@@ -1,0 +1,266 @@
+
+<!-- author-form.component.html -->
+<div class="author-form-container">
+  <p-toast data-testid="toast-messages"></p-toast>
+  <p-confirmDialog data-testid="confirm-dialog"></p-confirmDialog>
+
+  <div class="form-wrapper">
+    <p-card
+      header="Add New Author"
+      subheader="Create a new author profile with their published books"
+      styleClass="author-form-card"
+      data-testid="author-form-card"
+    >
+      <form
+        (ngSubmit)="onSubmit()"
+        #authorForm="ngForm"
+        class="author-form"
+        data-testid="author-form"
+        [attr.data-form-valid]="authorForm.valid"
+      >
+        <!-- Author Information Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-user"></i>
+            Author Information
+          </h3>
+
+          <div class="form-grid">
+            <!-- Full Name -->
+            <div class="form-field">
+              <label for="author-name" class="required-field">Full Name</label>
+              <input
+                pInputText
+                id="author-name"
+                [(ngModel)]="author.name"
+                name="authorName"
+                required
+                minlength="2"
+                maxlength="100"
+                placeholder="Enter author's full name"
+                class="form-input"
+                data-testid="author-name-input"
+                #nameField="ngModel"
+                [class.ng-invalid]="nameField.invalid && nameField.touched"
+              />
+              <small
+                class="error-message"
+                *ngIf="nameField.invalid && nameField.touched"
+                data-testid="name-error"
+              >
+                Name is required (2-100 characters)
+              </small>
+            </div>
+
+            <!-- Nationality -->
+            <div class="form-field">
+              <label for="author-nationality" class="required-field">Nationality</label>
+              <input
+                pInputText
+                id="author-nationality"
+                [(ngModel)]="author.nationality"
+                name="authorNationality"
+                required
+                minlength="2"
+                maxlength="50"
+                placeholder="Enter nationality"
+                class="form-input"
+                data-testid="author-nationality-input"
+                #nationalityField="ngModel"
+                [class.ng-invalid]="nationalityField.invalid && nationalityField.touched"
+              />
+              <small
+                class="error-message"
+                *ngIf="nationalityField.invalid && nationalityField.touched"
+                data-testid="nationality-error"
+              >
+                Nationality is required (2-50 characters)
+              </small>
+            </div>
+
+            <!-- Birth Date -->
+            <div class="form-field full-width">
+              <label for="author-birth-date">Birth Date</label>
+              <p-datepicker
+                id="author-birth-date"
+                [(ngModel)]="author.birthDate"
+                name="authorBirthDate"
+                dateFormat="dd/mm/yy"
+                showIcon
+                [maxDate]="maxBirthDate"
+                [minDate]="minBirthDate"
+                placeholder="Select birth date"
+                inputId="author-birth-date-input"
+                styleClass="form-input"
+                data-testid="author-birth-date-picker"
+              ></p-datepicker>
+            </div>
+          </div>
+        </div>
+
+        <p-divider></p-divider>
+
+        <!-- Books Section -->
+        <div class="form-section">
+          <h3 class="section-title">
+            <i class="pi pi-book"></i>
+            Published Books
+          </h3>
+
+          <!-- Add Book Form -->
+          <div class="add-book-section">
+            <h4 class="subsection-title">Add a Book</h4>
+            <div class="book-form-grid">
+              <!-- Title -->
+              <div class="form-field">
+                <label for="book-title">Book Title</label>
+                <input
+                  pInputText
+                  id="book-title"
+                  [(ngModel)]="newBook.title"
+                  name="bookTitle"
+                  placeholder="Enter book title"
+                  class="form-input"
+                  data-testid="book-title-input"
+                  maxlength="200"
+                />
+              </div>
+
+              <!-- ISBN -->
+              <div class="form-field">
+                <label for="book-isbn">ISBN</label>
+                <input
+                  pInputText
+                  id="book-isbn"
+                  [(ngModel)]="newBook.isbn"
+                  name="bookIsbn"
+                  placeholder="Enter ISBN"
+                  class="form-input"
+                  data-testid="book-isbn-input"
+                  pattern="^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$"
+                />
+              </div>
+
+              <!-- Publication Date -->
+              <div class="form-field">
+                <label for="book-publication-date">Publication Date</label>
+                <p-datepicker
+                  id="book-publication-date"
+                  [(ngModel)]="newBook.publicationDate"
+                  name="bookPublicationDate"
+                  dateFormat="dd/mm/yy"
+                  showIcon
+                  [maxDate]="today"
+                  placeholder="Select publication date"
+                  inputId="book-publication-date-input"
+                  styleClass="form-input"
+                  data-testid="book-publication-date-picker"
+                ></p-datepicker>
+              </div>
+            </div>
+
+            <!-- Add Book Button -->
+            <div class="add-book-actions">
+              <button
+                pButton
+                type="button"
+                icon="pi pi-plus"
+                label="Add Book"
+                (click)="addBook()"
+                class="p-button-outlined"
+                data-testid="add-book-button"
+                [disabled]="!isBookFormValid()"
+                [attr.data-can-add-book]="isBookFormValid()"
+              ></button>
+            </div>
+          </div>
+
+          <!-- Book Table -->
+          <div class="books-table-section" *ngIf="author.books.length > 0">
+            <h4 class="subsection-title">
+              Books List ({{ author.books.length }})
+            </h4>
+
+            <p-table
+              [value]="author.books"
+              [responsiveLayout]="'scroll'"
+              styleClass="books-table"
+              data-testid="books-table"
+              [attr.data-books-count]="author.books.length"
+            >
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>Title</th>
+                  <th>ISBN</th>
+                  <th>Publication Date</th>
+                  <th class="actions-column">Actions</th>
+                </tr>
+              </ng-template>
+
+              <ng-template pTemplate="body" let-book let-i="rowIndex">
+                <tr [attr.data-testid]="'book-row-'+ i">
+                  <td><span class="book-title" [attr.data-testid]="'book-title-'+ i">{{ book.title }}</span></td>
+                  <td><span class="book-isbn" [attr.data-testid]="'book-isbn-'+ i">{{ book.isbn }}</span></td>
+                  <td><span class="book-date" [attr.data-testid]="'book-date-'+ i">{{ formatDate(book.publicationDate) }}</span></td>
+                  <td class="actions-column">
+                    <button
+                      pButton
+                      icon="pi pi-trash"
+                      class="p-button-danger p-button-rounded p-button-sm p-button-outlined"
+                      type="button"
+                      (click)="confirmRemoveBook(i)"
+                      pTooltip="Remove book"
+                      tooltipPosition="top"
+                      [attr.data-testid]="'remove-book-button-'+ i"
+                    ></button>
+                  </td>
+                </tr>
+              </ng-template>
+
+              <ng-template pTemplate="emptymessage">
+                <tr>
+                  <td colspan="4" class="empty-message">
+                    No books added yet. Add some books using the form above.
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+
+          <div class="no-books-message" *ngIf="author.books.length === 0" data-testid="no-books-message">
+            <i class="pi pi-info-circle"></i>
+            <p>No books added yet. Use the form above to add books by this author.</p>
+          </div>
+        </div>
+
+        <p-divider></p-divider>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button
+            pButton
+            type="button"
+            label="Cancel"
+            icon="pi pi-times"
+            class="p-button-secondary p-button-outlined"
+            (click)="onCancel()"
+            data-testid="cancel-button"
+          ></button>
+
+          <button
+            pButton
+            type="submit"
+            label="Save Author"
+            icon="pi pi-check"
+            class="p-button-primary"
+            [disabled]="!authorForm.valid || isSubmitting"
+            [loading]="isSubmitting"
+            data-testid="save-author-button"
+            [attr.data-form-valid]="authorForm.valid"
+            [attr.data-submitting]="isSubmitting"
+          ></button>
+        </div>
+      </form>
+    </p-card>
+  </div>
+</div>

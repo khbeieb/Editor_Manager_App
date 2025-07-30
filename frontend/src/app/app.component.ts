@@ -20,5 +20,6 @@ export class AppComponent {
     { label: 'Authors', routerLink: '/authors' },
     { label: 'Books', routerLink: '/books' },
     { label: 'Magazines', routerLink: '/magazines' },
+    { label: 'Publications', routerLink: '/publications' },
   ];
 }
