@@ -1,10 +1,10 @@
 import { Routes } from '@angular/router';
 import {AuthorListComponent} from './features/authors/author-list/author-list.component';
 import {AuthorFormComponent} from './features/authors/author-form/author-form.component';
-import {BookListComponent} from './features/books/book-list.component';
-import {BookFormComponent} from './features/books/book-form.component';
-import {MagazineListComponent} from './features/magazines/magazine-list.component';
-import {MagazineFormComponent} from './features/magazines/magazine-form.component';
+import {BookListComponent} from './features/books/book-list/book-list.component';
+import {BookFormComponent} from './features/books/book-form/book-form.component';
+import {MagazineListComponent} from './features/magazines/magazine-list/magazine-list.component';
+import {MagazineFormComponent} from './features/magazines/magazine-form/magazine-form.component';
 import {PublicationListComponent} from './features/publications/publication-list.component';
 
 export const routes: Routes = [

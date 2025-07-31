@@ -1,0 +1,112 @@
+<div class="book-list-container" data-testid="magazine-list-container">
+  <p-toast></p-toast>
+  <div class="list-wrapper">
+    <div class="header-section">
+      <p-card styleClass="header-card">
+        <div class="header-content">
+          <div class="title-section">
+            <h1 class="page-title" data-testid="magazines-title">
+              <i class="pi pi-book"></i>
+              Magazines Library
+            </h1>
+            <p class="page-subtitle" data-testid="magazines-subtitle">
+              Manage and explore our collection of magazines
+            </p>
+          </div>
+          <div class="header-actions">
+            <button
+              pButton
+              type="button"
+              label="Add New Magazine"
+              icon="pi pi-plus"
+              class="p-button-primary add-book-btn"
+              routerLink="/magazines/new"
+              data-testid="add-magazine-btn"
+            ></button>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-refresh"
+              class="p-button-outlined refresh-btn"
+              (click)="refreshMagazines()"
+              [loading]="isRefreshing"
+              data-testid="refresh-magazines-btn"
+            ></button>
+          </div>
+        </div>
+      </p-card>
+    </div>
+
+    <div class="table-section">
+      <p-card styleClass="table-card">
+        <div *ngIf="isLoading" class="loading-container" data-testid="magazines-loading">
+          <p-progressSpinner
+            [style]="{ width: '50px', height: '50px' }"
+            strokeWidth="4"
+          ></p-progressSpinner>
+          <p class="loading-text">Loading magazines...</p>
+        </div>
+
+        <div
+          *ngIf="hasError && !isLoading"
+          class="error-container"
+          data-testid="magazines-error"
+        >
+          <i class="pi pi-exclamation-triangle error-icon"></i>
+          <h3>Failed to Load Magazines</h3>
+          <p>We couldn't retrieve the magazines list. Please try again.</p>
+          <button
+            pButton
+            type="button"
+            label="Retry"
+            icon="pi pi-refresh"
+            class="p-button-outlined"
+            (click)="refreshMagazines()"
+            data-testid="retry-magazines-btn"
+          ></button>
+        </div>
+
+        <div *ngIf="!isLoading && !hasError" class="table-container">
+          <h3 class="table-title" data-testid="magazines-table-title">
+            <i class="pi pi-list"></i>
+            Magazines Directory ({{ (filteredMagazines$ | async)?.length || 0 }})
+          </h3>
+          <p-table
+            [value]="(filteredMagazines$ | async) ?? []"
+            [responsiveLayout]="'scroll'"
+            data-testid="magazines-table"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Title</th>
+                <th>Issue Number</th>
+                <th>Published Date</th>
+                <th>Authors</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-magazine>
+              <tr data-testid="magazine-row">
+                <td data-testid="magazine-title">{{ magazine.title }}</td>
+                <td data-testid="magazine-issue">{{ magazine.issueNumber }}</td>
+                <td data-testid="magazine-date">
+                  {{ magazine.publishedDate | date: 'mediumDate' }}
+                </td>
+                <td data-testid="magazine-authors">
+                  <div class="authors-tags">
+                    <p-tag
+                      *ngFor="let author of magazine.authors"
+                      [value]="author.name"
+                      severity="info"
+                      class="author-tag"
+                      data-testid="magazine-author-tag"
+                    ></p-tag>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </p-card>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,270 @@
+<div class="book-list-container">
+  <p-toast data-testid="toast-messages"></p-toast>
+  <div class="list-wrapper">
+    <!-- Header Section -->
+    <div class="header-section">
+      <p-card styleClass="header-card" data-testid="header-card">
+        <div class="header-content">
+          <div class="title-section">
+            <h1 class="page-title">
+              <i class="pi pi-book"></i>
+              Books Library
+            </h1>
+            <p class="page-subtitle">
+              Manage and explore our collection of books
+            </p>
+          </div>
+          <div class="header-actions">
+            <button
+              pButton
+              type="button"
+              label="Add New Book"
+              icon="pi pi-plus"
+              class="p-button-primary add-book-btn"
+              routerLink="/books/new"
+              data-testid="add-book-button"
+            ></button>
+            <button
+              pButton
+              type="button"
+              icon="pi pi-refresh"
+              class="p-button-outlined refresh-btn"
+              (click)="refreshBooks()"
+              [loading]="isRefreshing"
+              pTooltip="Refresh books list"
+              tooltipPosition="bottom"
+              data-testid="refresh-books-button"
+              [attr.data-refreshing]="isRefreshing"
+            ></button>
+          </div>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <p-card header="Search & Filter" styleClass="filters-card" data-testid="filters-card">
+        <div class="filters-grid">
+          <div class="filter-field">
+            <label for="search-input">Search Books</label>
+            <input
+              pInputText
+              id="search-input"
+              [(ngModel)]="filters.searchTerm"
+              (ngModelChange)="onFilterChange()"
+              placeholder="Search by title..."
+              class="search-input"
+              data-testid="search-input"
+              [attr.data-search-term]="filters.searchTerm"
+            />
+            <i class="pi pi-search search-icon"></i>
+          </div>
+          <div class="filter-field">
+            <label for="sort-by">Sort By</label>
+            <p-select
+              id="sort-by"
+              [(ngModel)]="filters.sortBy"
+              (ngModelChange)="onFilterChange()"
+              [options]="sortOptions"
+              optionLabel="label"
+              optionValue="value"
+              styleClass="sort-dropdown"
+              data-testid="sort-by-filter"
+              [attr.data-sort-by]="filters.sortBy"
+            ></p-select>
+          </div>
+          <div class="filter-field">
+            <label for="sort-order">Sort Order</label>
+            <p-select
+              id="sort-order"
+              [(ngModel)]="filters.sortOrder"
+              (ngModelChange)="onFilterChange()"
+              [options]="sortOrderOptions"
+              optionLabel="label"
+              optionValue="value"
+              styleClass="sort-order-dropdown"
+              data-testid="sort-order-filter"
+              [attr.data-sort-order]="filters.sortOrder"
+            ></p-select>
+          </div>
+        </div>
+        <div class="filter-summary" *ngIf="hasActiveFilters()" data-testid="filter-summary">
+              <span class="summary-text">
+                <i class="pi pi-filter"></i>
+                Showing {{ (filteredBooks$ | async)?.length || 0 }} of {{ (books$ | async)?.data?.length || 0 }} books
+              </span>
+          <button
+            pButton
+            type="button"
+            label="Clear Filters"
+            icon="pi pi-times"
+            class="p-button-sm p-button-outlined clear-filters-btn"
+            (click)="clearFilters()"
+            data-testid="clear-filters-button"
+          ></button>
+        </div>
+      </p-card>
+    </div>
+
+    <!-- Books Table Section -->
+    <div class="table-section">
+      <p-card styleClass="table-card" data-testid="books-table-card">
+        <!-- Loading State -->
+        <div class="loading-container" *ngIf="isLoading" data-testid="loading-spinner">
+          <p-progressSpinner
+            [style]="{width: '50px', height: '50px'}"
+            strokeWidth="4"
+            animationDuration="1s"
+          ></p-progressSpinner>
+          <p class="loading-text">Loading books...</p>
+        </div>
+        <!-- Error State -->
+        <div class="error-container" *ngIf="hasError && !isLoading" data-testid="error-message">
+          <i class="pi pi-exclamation-triangle error-icon"></i>
+          <h3>Failed to Load Books</h3>
+          <p>We couldn't retrieve the books list. Please try again.</p>
+          <button
+            pButton
+            type="button"
+            label="Retry"
+            icon="pi pi-refresh"
+            class="p-button-outlined"
+            (click)="refreshBooks()"
+            data-testid="retry-button"
+          ></button>
+        </div>
+        <!-- Books Table -->
+        <div *ngIf="!isLoading && !hasError" class="table-container">
+          <div class="table-header">
+            <h3 class="table-title">
+              <i class="pi pi-list"></i>
+              Books Directory
+              <span class="books-count" data-testid="books-count">
+                    ({{ (filteredBooks$ | async)?.length || 0 }})
+                  </span>
+            </h3>
+          </div>
+          <p-table
+            [value]="(filteredBooks$ | async) ?? []"
+            [responsiveLayout]="'scroll'"
+            styleClass="books-table"
+            data-testid="books-table"
+            [attr.data-books-count]="(filteredBooks$ | async)?.length"
+          >
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="book-title-col">Title</th>
+                <th class="isbn-col">ISBN</th>
+                <th class="publication-date-col">Publication Date</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-book let-i="rowIndex">
+              <tr
+                class="book-row"
+                [attr.data-testid]="'book-row-' + i"
+                [attr.data-book-id]="book.id"
+                [attr.data-book-title]="book.title"
+              >
+                <td class="book-title-cell">
+                  <div class="book-info">
+                    <div class="book-icon">
+                      <i class="pi pi-book"></i>
+                    </div>
+                    <div class="book-details">
+                          <span
+                            class="book-title"
+                            [attr.data-testid]="'book-title-' + i"
+                          >
+                            {{ book.title }}
+                          </span>
+                      <small class="book-id">ID: {{ book.id }}</small>
+                    </div>
+                  </div>
+                </td>
+                <td class="isbn-cell">
+                      <span
+                        class="isbn"
+                        [attr.data-testid]="'book-isbn-' + i"
+                      >
+                        {{ book.isbn }}
+                      </span>
+                </td>
+                <td class="publication-date-cell">
+                      <span
+                        class="publication-date"
+                        [attr.data-testid]="'book-publication-date-' + i"
+                      >
+                        {{ book.publicationDate | date: 'mediumDate' }}
+                      </span>
+                </td>
+                <td class="actions-cell">
+                  <div class="action-buttons">
+                    <button
+                      pButton
+                      type="button"
+                      icon="pi pi-eye"
+                      class="p-button-rounded p-button-outlined p-button-sm view-btn"
+                      (click)="viewBook(book)"
+                      pTooltip="View details"
+                      tooltipPosition="top"
+                      [attr.data-testid]="'view-book-button-' + i"
+                      [attr.data-book-id]="book.id"
+                    ></button>
+                    <button
+                      pButton
+                      type="button"
+                      icon="pi pi-pencil"
+                      class="p-button-rounded p-button-outlined p-button-sm edit-btn"
+                      (click)="editBook(book)"
+                      pTooltip="Edit book"
+                      tooltipPosition="top"
+                      [attr.data-testid]="'edit-book-button-' + i"
+                      [attr.data-book-id]="book.id"
+                    ></button>
+                    <button
+                      pButton
+                      type="button"
+                      icon="pi pi-trash"
+                      class="p-button-rounded p-button-outlined p-button-sm p-button-danger delete-btn"
+                      (click)="deleteBook(book)"
+                      pTooltip="Delete book"
+                      tooltipPosition="top"
+                      [attr.data-testid]="'delete-book-button-' + i"
+                      [attr.data-book-id]="book.id"
+                    ></button>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="5" class="empty-message" data-testid="empty-message">
+                  <div class="empty-content">
+                    <i class="pi pi-book empty-icon"></i>
+                    <h3>No Books Found</h3>
+                    <p *ngIf="hasActiveFilters(); else noBooksTemplate">
+                      No books match your current filters. Try adjusting your search criteria.
+                    </p>
+                    <ng-template #noBooksTemplate>
+                      <p>Start building your books library by adding your first book.</p>
+                      <button
+                        pButton
+                        type="button"
+                        label="Add First Book"
+                        icon="pi pi-plus"
+                        class="p-button-primary"
+                        routerLink="/books/new"
+                        data-testid="add-first-book-button"
+                      ></button>
+                    </ng-template>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </p-card>
+    </div>
+  </div>
+</div>

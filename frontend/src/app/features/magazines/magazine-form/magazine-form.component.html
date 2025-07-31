@@ -1,0 +1,156 @@
+
+<div class="magazine-form-container" data-testid="magazine-form-container">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
+
+  <div class="form-wrapper">
+    <p-card
+      header="Add New Magazine"
+      subheader="Fill in the magazine details"
+      styleClass="magazine-form-card"
+      data-testid="magazine-form-card"
+    >
+      <form
+        (ngSubmit)="onSubmit()"
+        #magazineForm="ngForm"
+        class="magazine-form"
+        [attr.data-form-valid]="magazineForm.valid"
+        data-testid="magazine-form"
+      >
+        <div class="form-section">
+          <h3 class="section-title" data-testid="section-title">
+            <i class="pi pi-book"></i>
+            Magazine Information
+          </h3>
+
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="title" class="required-field">Title</label>
+              <input
+                pInputText
+                id="title"
+                name="title"
+                [(ngModel)]="magazine.title"
+                required
+                minlength="2"
+                maxlength="200"
+                placeholder="Enter magazine title"
+                class="form-input"
+                #titleField="ngModel"
+                [class.ng-invalid]="titleField.invalid && titleField.touched"
+                data-testid="input-title"
+              />
+              <small
+                class="error-message"
+                *ngIf="titleField.invalid && titleField.touched"
+                data-testid="error-title"
+              >
+                Title is required (2-200 characters)
+              </small>
+            </div>
+
+            <div class="form-field">
+              <label for="issueNumber" class="required-field">Issue Number</label>
+              <input
+                pInputText
+                id="issueNumber"
+                name="issueNumber"
+                type="number"
+                [(ngModel)]="magazine.issueNumber"
+                required
+                min="1"
+                class="form-input"
+                #issueField="ngModel"
+                [class.ng-invalid]="issueField.invalid && issueField.touched"
+                data-testid="input-issue-number"
+              />
+              <small
+                class="error-message"
+                *ngIf="issueField.invalid && issueField.touched"
+                data-testid="error-issue-number"
+              >
+                Issue number is required and must be greater than 0
+              </small>
+            </div>
+
+            <div class="form-field full-width">
+              <label for="publishedDate" class="required-field">Published Date</label>
+              <p-datepicker
+                id="publishedDate"
+                name="publishedDate"
+                [(ngModel)]="magazine.publishedDate"
+                required
+                dateFormat="dd/mm/yy"
+                showIcon
+                [maxDate]="today"
+                inputId="publishedDateInput"
+                class="form-input"
+                #dateField="ngModel"
+                [class.ng-invalid]="dateField.invalid && dateField.touched"
+                data-testid="input-published-date"
+              ></p-datepicker>
+              <small
+                class="error-message"
+                *ngIf="dateField.invalid && dateField.touched"
+                data-testid="error-published-date"
+              >
+                Published date is required
+              </small>
+            </div>
+
+            <div class="form-field full-width">
+              <label for="authors" class="required-field">Authors</label>
+              <p-multiSelect
+                id="authors"
+                name="authors"
+                [options]="(authors$ | async) ?? []"
+                optionLabel="name"
+                optionValue="id"
+                [(ngModel)]="selectedAuthorIds"
+                required
+                placeholder="Select authors"
+                class="form-input"
+                #authorsField="ngModel"
+                [class.ng-invalid]="authorsField.invalid && authorsField.touched"
+                data-testid="input-authors"
+              ></p-multiSelect>
+              <small
+                class="error-message"
+                *ngIf="authorsField.invalid && authorsField.touched"
+                data-testid="error-authors"
+              >
+                At least one author must be selected
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <p-divider></p-divider>
+
+        <div class="form-actions">
+          <button
+            pButton
+            type="button"
+            label="Cancel"
+            icon="pi pi-times"
+            class="p-button-secondary p-button-outlined"
+            (click)="onCancel()"
+            data-testid="cancel-button"
+          ></button>
+
+          <button
+            pButton
+            type="submit"
+            label="Save Magazine"
+            icon="pi pi-check"
+            class="p-button-primary"
+            [disabled]="!magazineForm.valid || isSubmitting"
+            [loading]="isSubmitting"
+            [attr.data-submitting]="isSubmitting"
+            data-testid="submit-button"
+          ></button>
+        </div>
+      </form>
+    </p-card>
+  </div>
+</div>
