@@ -1,0 +1,46 @@
+-------------------------------------------------------------------------------
+Test set: com.example.HomePageTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 1.675 s <<< FAILURE! -- in com.example.HomePageTest
+com.example.HomePageTest.shouldLoadHomePage -- Time elapsed: 0.122 s <<< ERROR!
+com.microsoft.playwright.PlaywrightException: 
+Error {
+  message='net::ERR_CONNECTION_REFUSED at http://localhost:4200/
+  name='Error
+  stack='Error: net::ERR_CONNECTION_REFUSED at http://localhost:4200/
+    at FrameSession._navigate (/tmp/playwright-java-8004400885451268887/package/lib/server/chromium/crPage.js:515:35)
+    at async Frame._gotoAction (/tmp/playwright-java-8004400885451268887/package/lib/server/frames.js:534:28)
+}
+Call log:
+- navigating to "http://localhost:4200/", waiting until "load"
+
+	at com.microsoft.playwright.impl.WaitableResult.get(WaitableResult.java:56)
+	at com.microsoft.playwright.impl.ChannelOwner.runUntil(ChannelOwner.java:120)
+	at com.microsoft.playwright.impl.Connection.sendMessage(Connection.java:130)
+	at com.microsoft.playwright.impl.ChannelOwner.sendMessage(ChannelOwner.java:106)
+	at com.microsoft.playwright.impl.FrameImpl.navigateImpl(FrameImpl.java:463)
+	at com.microsoft.playwright.impl.PageImpl.lambda$navigate$46(PageImpl.java:927)
+	at com.microsoft.playwright.impl.LoggingSupport.withLogging(LoggingSupport.java:47)
+	at com.microsoft.playwright.impl.ChannelOwner.withLogging(ChannelOwner.java:89)
+	at com.microsoft.playwright.impl.PageImpl.navigate(PageImpl.java:927)
+	at com.microsoft.playwright.impl.PageImpl.navigate(PageImpl.java:42)
+	at com.microsoft.playwright.Page.navigate(Page.java:5530)
+	at com.example.HomePageTest.shouldLoadHomePage(HomePageTest.java:30)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: com.microsoft.playwright.impl.DriverException: Error {
+  message='net::ERR_CONNECTION_REFUSED at http://localhost:4200/
+  name='Error
+  stack='Error: net::ERR_CONNECTION_REFUSED at http://localhost:4200/
+    at FrameSession._navigate (/tmp/playwright-java-8004400885451268887/package/lib/server/chromium/crPage.js:515:35)
+    at async Frame._gotoAction (/tmp/playwright-java-8004400885451268887/package/lib/server/frames.js:534:28)
+}
+Call log:
+- navigating to "http://localhost:4200/", waiting until "load"
+
+	at com.microsoft.playwright.impl.Connection.dispatch(Connection.java:259)
+	at com.microsoft.playwright.impl.Connection.processOneMessage(Connection.java:211)
+	at com.microsoft.playwright.impl.ChannelOwner.runUntil(ChannelOwner.java:118)
+	... 13 more
+
