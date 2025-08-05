@@ -53,6 +53,7 @@ services:
     command: mvn test
     volumes:
       - ./e2e-tests:/e2e
+      - ~/.m2:/root/.m2
     working_dir: /e2e
 
 volumes:

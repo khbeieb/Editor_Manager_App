@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright/java:v1.44.0
+FROM mcr.microsoft.com/playwright/java:v1.53.0-jammy
 
 WORKDIR /e2e-tests
 
