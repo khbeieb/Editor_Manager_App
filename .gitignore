@@ -34,3 +34,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# E2E test build output
+/e2e-tests/target/
+/e2e-tests/.allure/
+
+# Surefire reports
+/e2e-tests/target/surefire-reports/

@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer" },
+    "title": { "type": "string", "minLength": 1 },
+    "isbn": { "type": "string", "minLength": 8, "maxLength": 20 },
+    "author": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "nationality": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "publicationDate": { "type": "string", "format": "date" }
+  },
+  "required": ["title", "isbn", "author", "publicationDate"]
+}

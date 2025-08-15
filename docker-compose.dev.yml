@@ -48,13 +48,15 @@ services:
       - frontend
       - backend
     environment:
-      BASE_URL: "http://frontend:4200"
-      E2E_BASE_URL: "http://frontend:4200"
+      E2E_BASE_URL_UI: "http://frontend:4200"
+      E2E_BASE_URL_API: "http://backend:8080"
     command: mvn test
     volumes:
-      - ./e2e-tests:/e2e
+      - ./e2e-tests:/e2e-tests
       - ~/.m2:/root/.m2
-    working_dir: /e2e
+    working_dir: /e2e-tests
+    ports:
+      - "8081:8080"
 
 volumes:
   db_data:

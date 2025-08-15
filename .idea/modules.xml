@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Editor_Manager_App.iml" filepath="$PROJECT_DIR$/.idea/Editor_Manager_App.iml" />
+      <module fileurl="file://$PROJECT_DIR$/e2e-tests/e2e-tests.iml" filepath="$PROJECT_DIR$/e2e-tests/e2e-tests.iml" />
     </modules>
   </component>
 </project>
