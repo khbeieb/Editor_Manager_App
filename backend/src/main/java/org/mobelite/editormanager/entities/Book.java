@@ -1,10 +1,7 @@
 package org.mobelite.editormanager.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import jakarta.persistence.DiscriminatorValue;
-import jakarta.persistence.Entity;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,4 +21,11 @@ public class Book extends Publication {
     @JoinColumn(name = "author_id")
     @JsonBackReference
     private Author author;
+
+    @PreRemove
+    private void removeBookFromAuthor() {
+      if (author != null) {
+        author.getBooks().remove(this);
+      }
+    }
 }

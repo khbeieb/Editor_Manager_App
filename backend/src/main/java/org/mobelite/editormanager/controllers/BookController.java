@@ -55,4 +55,36 @@ public class BookController {
                         new ApiResponse<>(HttpStatus.NOT_FOUND.value(), "Book not found with ISBN " + isbn, null, LocalDateTime.now())
                 ));
     }
+
+
+
+  @Operation(summary = "Delete book by ID")
+  @DeleteMapping("/{id}")
+  public ResponseEntity<ApiResponse<Void>> deleteBook(@PathVariable Long id) {
+    log.info("Deleting book with ID: {}", id);
+    boolean deleted = bookService.deleteBook(id);
+    if (deleted) {
+      return ResponseEntity.ok(
+        new ApiResponse<>(HttpStatus.OK.value(), "Book deleted successfully", null, LocalDateTime.now())
+      );
+    } else {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+        new ApiResponse<>(HttpStatus.NOT_FOUND.value(), "Book not found with ID " + id, null, LocalDateTime.now())
+      );
+    }
+  }
+
+  @Operation(summary = "Delete book by ISBN")
+  @DeleteMapping("/isbn/{isbn}")
+  public ResponseEntity<ApiResponse<Void>> deleteBookByIsbn(@PathVariable String isbn) {
+    log.info("Deleting book with ISBN: {}", isbn);
+    boolean deleted = bookService.deleteBookByIsbn(isbn);
+    return deleted
+      ? ResponseEntity.ok(
+      new ApiResponse<>(HttpStatus.OK.value(), "Book deleted successfully", null, LocalDateTime.now())
+    )
+      : ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+      new ApiResponse<>(HttpStatus.NOT_FOUND.value(), "Book not found with ISBN " + isbn, null, LocalDateTime.now())
+    );
+  }
 }
