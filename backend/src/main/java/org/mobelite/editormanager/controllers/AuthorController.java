@@ -54,4 +54,13 @@ public class AuthorController {
                 )
         );
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete an Author by ID")
+    public ResponseEntity<ApiResponse<Void>> deleteAuthor(@PathVariable Long id) {
+      authorService.deleteAuthor(id);
+      return ResponseEntity.ok(
+        new ApiResponse<>(HttpStatus.OK.value(), "Author deleted successfully", null, LocalDateTime.now())
+      );
+    }
 }

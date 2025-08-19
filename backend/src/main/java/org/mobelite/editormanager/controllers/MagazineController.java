@@ -49,4 +49,13 @@ public class MagazineController {
                 )
         );
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a Magazine by ID")
+    public ResponseEntity<ApiResponse<Void>> deleteMagazine(@PathVariable Long id) {
+      magazineService.deleteMagazine(id);
+      return ResponseEntity.ok(
+        new ApiResponse<>(HttpStatus.OK.value(), "Magazine deleted successfully", null, LocalDateTime.now())
+      );
+    }
 }

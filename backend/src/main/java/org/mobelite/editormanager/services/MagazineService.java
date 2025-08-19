@@ -1,17 +1,15 @@
 package org.mobelite.editormanager.services;
 
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
-import org.mobelite.editormanager.dto.AuthorBasicDTO;
 import org.mobelite.editormanager.dto.MagazineDTO;
 import org.mobelite.editormanager.entities.Author;
 import org.mobelite.editormanager.entities.Magazine;
-import org.mobelite.editormanager.entities.Publication;
 import org.mobelite.editormanager.mappers.MagazineMapper;
 import org.mobelite.editormanager.repositories.AuthorRepository;
 import org.mobelite.editormanager.repositories.MagazineRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -42,5 +40,14 @@ public class MagazineService {
         return magazineRepository.findAll().stream()
                 .map(MagazineMapper::toDTO)
                 .toList();
+    }
+
+    @Transactional
+    public void deleteMagazine(Long magazineId) {
+      Magazine magazine = magazineRepository.findById(magazineId)
+        .orElseThrow(() -> new RuntimeException("Magazine not found with id: " + magazineId));
+
+      System.out.println("Deleting magazine: " + magazine.getTitle());
+      magazineRepository.delete(magazine);
     }
 }

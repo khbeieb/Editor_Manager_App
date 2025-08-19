@@ -1,5 +1,6 @@
 package org.mobelite.editormanager.services;
 
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.mobelite.editormanager.dto.AuthorDTO;
 import org.mobelite.editormanager.entities.Author;
@@ -39,5 +40,24 @@ public class AuthorService {
 
     public List<Author> getAllAuthors() {
         return authorRepository.findAll();
+    }
+
+    @Transactional
+    public void deleteAuthor(Long authorId) {
+      Author author = authorRepository.findById(authorId)
+        .orElseThrow(() -> new RuntimeException("Author not found with id: " + authorId));
+
+      // Delete all books of this author
+      List<Book> books = bookRepository.findAll()
+        .stream()
+        .filter(b -> b.getAuthor().getId().equals(authorId))
+        .toList();
+
+      System.out.println("Deleting books for author " + author.getName() + ": " + books.size());
+      books.forEach(bookRepository::delete);
+
+      // Now delete the author
+      authorRepository.delete(author);
+      System.out.println("Author deleted: " + author.getName());
     }
 }
