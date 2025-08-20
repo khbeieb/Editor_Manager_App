@@ -90,7 +90,7 @@ public class BookApiTest extends BaseEntityTest {
     createEntity("/books", bookData, BOOK_SCHEMA);
 
     JSONArray books = getAllEntities("/books");
-    assertTrue(books.length() > 0, "Books list should not be empty");
+    assertFalse(books.isEmpty(), "Books list should not be empty");
 
     JSONObject foundBook = findEntityInList(books, "isbn", testIsbn);
     assertNotNull(foundBook, "Created book should appear in list");
@@ -162,7 +162,7 @@ public class BookApiTest extends BaseEntityTest {
     JSONArray remainingBooks = getAllEntities("/books");
     assertFalse(entityExistsInList(remainingBooks, "id", bookId), "Book should not exist after deletion");
 
-    createdEntities.removeIf(entity -> entity.id.equals(bookId));
+    createdEntities.removeIf(entity -> entity.id().equals(bookId));
 
     System.out.println("✅ Book deleted successfully (ID=" + bookId + ")");
   }

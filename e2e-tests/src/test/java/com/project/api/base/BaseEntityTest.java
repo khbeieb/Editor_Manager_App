@@ -16,18 +16,7 @@ public abstract class BaseEntityTest extends BaseApiTest {
 
   protected static final List<TestEntity> createdEntities = new ArrayList<>();
 
-  protected static class TestEntity {
-    public final String type;
-    public final Long id;
-    public final String endpoint;
-    public final JSONObject data;
-
-    public TestEntity(String type, Long id, String endpoint, JSONObject data) {
-      this.type = type;
-      this.id = id;
-      this.endpoint = endpoint;
-      this.data = data;
-    }
+  protected record TestEntity(String type, Long id, String endpoint, JSONObject data) {
   }
 
   @AfterEach
@@ -113,7 +102,6 @@ public abstract class BaseEntityTest extends BaseApiTest {
   }
 
   protected String generateValidIsbn() {
-    // generates a 13–15 char ISBN-like string to pass validation
-    return "ISBN" + (System.nanoTime() % 10000000000000L); // always between 10–20 chars
+    return "ISBN" + (System.nanoTime() % 10000000000000L);
   }
 }
