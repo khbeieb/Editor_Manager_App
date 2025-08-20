@@ -55,8 +55,6 @@ services:
       - ./e2e-tests:/e2e-tests
       - ~/.m2:/root/.m2
     working_dir: /e2e-tests
-    ports:
-      - "8082:8080"
 
 volumes:
   db_data:

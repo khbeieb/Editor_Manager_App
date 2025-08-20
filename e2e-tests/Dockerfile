@@ -8,9 +8,16 @@ RUN rm -rf /usr/share/maven && \
     mv /opt/apache-maven-3.9.10 /opt/maven && \
     rm apache-maven-3.9.10-bin.tar.gz
 
+# Install Allure
+RUN wget https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz && \
+    tar -xzf allure-2.29.0.tgz -C /opt && \
+    mv /opt/allure-2.29.0 /opt/allure && \
+    rm allure-2.29.0.tgz
+
 # Update PATH
 ENV MAVEN_HOME=/opt/maven
-ENV PATH=$MAVEN_HOME/bin:$PATH
+ENV ALLURE_HOME=/opt/allure
+ENV PATH=$MAVEN_HOME/bin:$ALLURE_HOME/bin:$PATH
 
 # Set working directory
 WORKDIR /e2e-tests
@@ -22,6 +29,9 @@ COPY src ./src
 # Pre-download dependencies & compile
 RUN mvn dependency:go-offline -B
 RUN mvn compile
+
+# Expose port for Allure serve
+EXPOSE 8080
 
 # Default command just runs tests
 CMD ["mvn", "test"]
