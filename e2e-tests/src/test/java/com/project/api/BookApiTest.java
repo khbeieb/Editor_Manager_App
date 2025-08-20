@@ -1,6 +1,7 @@
 package com.project.api;
 
 import com.microsoft.playwright.APIResponse;
+import com.microsoft.playwright.options.RequestOptions;
 import com.project.api.base.BaseEntityTest;
 import io.qameta.allure.*;
 import org.everit.json.schema.Schema;
@@ -178,7 +179,7 @@ public class BookApiTest extends BaseEntityTest {
       .put("title", "Incomplete Book");
 
     APIResponse response = api.post("/books",
-      com.microsoft.playwright.options.RequestOptions.create()
+      RequestOptions.create()
         .setData(invalidBook.toString())
         .setHeader("Content-Type", "application/json")
     );
@@ -219,7 +220,7 @@ public class BookApiTest extends BaseEntityTest {
       .put("author", new JSONObject().put("id", author.getLong("id")));
 
     APIResponse response = api.post("/books",
-      com.microsoft.playwright.options.RequestOptions.create()
+      RequestOptions.create()
         .setData(secondBookData.toString())
         .setHeader("Content-Type", "application/json")
     );

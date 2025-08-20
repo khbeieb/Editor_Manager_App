@@ -93,9 +93,15 @@ public abstract class BaseEntityTest extends BaseApiTest {
 
   protected JSONObject findEntityInList(JSONArray entities, String field, Object value) {
     for (int i = 0; i < entities.length(); i++) {
-      JSONObject entity = entities.getJSONObject(i);
-      if (entity.get(field).equals(value)) {
-        return entity;
+      Object fieldValue = entities.getJSONObject(i).get(field);
+
+      // Normalize number types to long
+      if (fieldValue instanceof Number && value instanceof Number) {
+        if (((Number) fieldValue).longValue() == ((Number) value).longValue()) {
+          return entities.getJSONObject(i);
+        }
+      } else if (fieldValue.equals(value)) {
+        return entities.getJSONObject(i);
       }
     }
     return null;

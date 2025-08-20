@@ -8,56 +8,72 @@ import org.mobelite.editormanager.entities.Book;
 import org.mobelite.editormanager.mappers.AuthorMapper;
 import org.mobelite.editormanager.repositories.AuthorRepository;
 import org.mobelite.editormanager.repositories.BookRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @AllArgsConstructor
 public class AuthorService {
-    private final AuthorRepository authorRepository;
-    private final BookRepository bookRepository;
+  private final AuthorRepository authorRepository;
+  private final BookRepository bookRepository;
 
-    public AuthorDTO addAuthor(AuthorDTO request) {
-        if (authorRepository.findAuthorByName(request.getName()).isPresent()) {
-            throw new RuntimeException("Author already exists");
+  public AuthorDTO addAuthor(AuthorDTO request) {
+    // Prevent duplicate author names
+    if (authorRepository.findAuthorByName(request.getName()).isPresent()) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Author already exists");
+    }
+
+    Author author = AuthorMapper.toEntity(request);
+
+    // Validate books
+    if (author.getBooks() != null) {
+      Set<String> seenIsbns = new HashSet<>();
+      for (Book book : author.getBooks()) {
+        if (!seenIsbns.add(book.getIsbn())) {
+          // Duplicate ISBN inside the same payload
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+            "Duplicate ISBN in author request: " + book.getIsbn());
         }
 
-        Author author = AuthorMapper.toEntity(request);
-
-        if (author.getBooks() != null) {
-            for (Book book : author.getBooks()) {
-                if (bookRepository.existsByIsbn(book.getIsbn())) {
-                    throw new RuntimeException("Book with ISBN " + book.getIsbn() + " already exists");
-                }
-                book.setAuthor(author);
-            }
+        if (bookRepository.existsByIsbn(book.getIsbn())) {
+          throw new ResponseStatusException(HttpStatus.CONFLICT,
+            "Book with ISBN " + book.getIsbn() + " already exists");
         }
 
-        Author savedAuthor = authorRepository.save(author);
-        return AuthorMapper.toDTO(savedAuthor);
+        book.setAuthor(author);
+      }
     }
 
-    public List<Author> getAllAuthors() {
-        return authorRepository.findAll();
-    }
+    Author savedAuthor = authorRepository.save(author);
+    return AuthorMapper.toDTO(savedAuthor);
+  }
 
-    @Transactional
-    public void deleteAuthor(Long authorId) {
-      Author author = authorRepository.findById(authorId)
-        .orElseThrow(() -> new RuntimeException("Author not found with id: " + authorId));
+  public List<Author> getAllAuthors() {
+    return authorRepository.findAll();
+  }
 
-      // Delete all books of this author
-      List<Book> books = bookRepository.findAll()
-        .stream()
-        .filter(b -> b.getAuthor().getId().equals(authorId))
-        .toList();
+  @Transactional
+  public void deleteAuthor(Long authorId) {
+    Author author = authorRepository.findById(authorId)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+        "Author not found with id: " + authorId));
 
-      System.out.println("Deleting books for author " + author.getName() + ": " + books.size());
-      books.forEach(bookRepository::delete);
+    // Delete all books of this author
+    List<Book> books = bookRepository.findAll()
+      .stream()
+      .filter(b -> b.getAuthor().getId().equals(authorId))
+      .toList();
 
-      // Now delete the author
-      authorRepository.delete(author);
-      System.out.println("Author deleted: " + author.getName());
-    }
+    System.out.println("Deleting books for author " + author.getName() + ": " + books.size());
+    books.forEach(bookRepository::delete);
+
+    // Now delete the author
+    authorRepository.delete(author);
+    System.out.println("Author deleted: " + author.getName());
+  }
 }
