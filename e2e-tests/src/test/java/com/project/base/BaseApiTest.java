@@ -30,7 +30,8 @@ public abstract class BaseApiTest {
         .setBaseURL(BASE_API_URL)
         .setExtraHTTPHeaders(
           java.util.Map.of(
-            "Accept", "application/json"
+            "Accept", "application/json",
+            "Content-type", "application/json"
           )
         )
     );

@@ -181,7 +181,6 @@ public class BookApiTest extends BaseEntityTest {
     APIResponse response = api.post("/books",
       RequestOptions.create()
         .setData(invalidBook.toString())
-        .setHeader("Content-Type", "application/json")
     );
 
     assertTrue(response.status() >= 400 && response.status() < 500,
@@ -222,7 +221,6 @@ public class BookApiTest extends BaseEntityTest {
     APIResponse response = api.post("/books",
       RequestOptions.create()
         .setData(secondBookData.toString())
-        .setHeader("Content-Type", "application/json")
     );
 
     // Expect 500

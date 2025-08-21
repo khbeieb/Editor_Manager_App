@@ -184,7 +184,6 @@ public class AuthorApiTest extends BaseEntityTest {
     APIResponse response = api.post("/authors",
       RequestOptions.create()
         .setData(invalidAuthor.toString())
-        .setHeader("Content-Type", "application/json")
     );
 
     assertTrue(response.status() >= 400 && response.status() < 500,
@@ -212,7 +211,6 @@ public class AuthorApiTest extends BaseEntityTest {
     APIResponse response = api.post("/authors",
       RequestOptions.create()
         .setData(authorData.toString())
-        .setHeader("Content-Type", "application/json")
     );
 
     assertEquals(500, response.status(),
@@ -250,7 +248,6 @@ public class AuthorApiTest extends BaseEntityTest {
     APIResponse response = api.post("/authors",
       RequestOptions.create()
         .setData(authorData.toString())
-        .setHeader("Content-Type", "application/json")
     );
 
     System.out.println("📋 API response status: " + response.status());

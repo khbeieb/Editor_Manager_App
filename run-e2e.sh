@@ -55,7 +55,6 @@ if [[ -d "$ALLURE_RESULTS_DIR" ]] && [[ -n "$(ls -A "$ALLURE_RESULTS_DIR" 2>/dev
 
   echo "✅ Allure report ready!"
   echo "📊 View report at: http://localhost:$PORT"
-  echo "📊 Latest report: http://localhost:$PORT"
 
   # Open browser
   if command -v open &> /dev/null; then
@@ -66,12 +65,6 @@ if [[ -d "$ALLURE_RESULTS_DIR" ]] && [[ -n "$(ls -A "$ALLURE_RESULTS_DIR" 2>/dev
     echo "🔗 Open http://localhost:$PORT."
   fi
 
-  echo ""
-  echo "🎯 Commands:"
-  echo "   View UI:     http://localhost:$PORT"
-  echo "   Latest Report: http://localhost:$PORT"
-  echo "   Stop Server: docker stop allure-server"
-  echo ""
   echo "💡 The server will keep running until you stop it with: docker stop allure-server"
 
 else
