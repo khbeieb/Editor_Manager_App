@@ -24,7 +24,7 @@ public class PlaywrightFactory {
   }
 
   /**
-   * Create a new isolated BrowserContext.
+   * Create a new isolated BrowserContext
    */
   public static BrowserContext createContext() {
     if (browser == null) {

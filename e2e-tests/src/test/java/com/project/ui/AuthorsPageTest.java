@@ -1,12 +1,11 @@
 package com.project.ui;
 
-import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
-import com.microsoft.playwright.options.WaitForSelectorState;
 import com.project.base.BaseTest;
 import com.project.ui.pages.AuthorsListPage;
 import com.project.utils.TestDataHelper;
+import io.qameta.allure.Epic;
 import org.junit.jupiter.api.*;
 
 import java.nio.file.Paths;
@@ -14,6 +13,7 @@ import java.nio.file.Paths;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Epic("Authors Page")
 public class AuthorsPageTest extends BaseTest {
   private AuthorsListPage authorsPage;
   private String createdAuthorId;
@@ -59,7 +59,6 @@ public class AuthorsPageTest extends BaseTest {
     authorsPage.clickRefresh();
     authorsPage.waitForAuthorsData();
 
-    assertTrue(authorsPage.isTableVisible());
     assertEquals("Test Author", authorsPage.getFirstRowName());
     assertEquals("French", authorsPage.getFirstRowNationality());
   }

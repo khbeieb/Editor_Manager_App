@@ -1,22 +1,20 @@
-# Stage 1: Build the Angular app
-FROM node:20-alpine AS builder
+# Use Node.js base image
+FROM node:20-alpine
 
+# Set working directory inside container
 WORKDIR /app
 
+# Copy package.json and lock file first for dependency caching
+COPY package*.json yarn.lock* ./
+
+# Clear yarn cache and install dependencies
+RUN yarn cache clean && yarn install --frozen-lockfile
+
+# Copy the rest of the app's code
 COPY . .
 
-RUN npm install
-RUN npm run build -- --configuration=production
-RUN ls -l dist/ && ls -l dist/editor-manager-frontend/
+# Expose Angular's dev server port
+EXPOSE 4200
 
-# Stage 2: Serve with Nginx
-FROM nginx:alpine
-
-# Remove default nginx content
-RUN rm -rf /usr/share/nginx/html/*
-
-# Copy Angular dist to Nginx
-COPY --from=builder /app/dist/editor-manager-frontend/browser /usr/share/nginx/html
-
-# Copy custom Nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Start Angular in dev mode
+CMD ["yarn", "start"]

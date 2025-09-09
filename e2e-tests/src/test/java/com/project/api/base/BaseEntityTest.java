@@ -2,6 +2,7 @@ package com.project.api.base;
 
 import com.microsoft.playwright.APIResponse;
 import com.project.base.BaseApiTest;
+import com.project.utils.HttpStatus;
 import org.everit.json.schema.Schema;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -16,8 +17,7 @@ public abstract class BaseEntityTest extends BaseApiTest {
 
   protected static final List<TestEntity> createdEntities = new ArrayList<>();
 
-  protected record TestEntity(String type, Long id, String endpoint, JSONObject data) {
-  }
+  protected record TestEntity(String type, Long id, String endpoint, JSONObject data) { }
 
   @AfterEach
   void cleanupEntitiesAfterEach() {
@@ -25,11 +25,11 @@ public abstract class BaseEntityTest extends BaseApiTest {
   }
 
   protected static void cleanupCreatedEntities() {
-    for (int i = createdEntities.size() - 1; i >= 0; i--) { // reverse order for dependencies
+    for (int i = createdEntities.size() - 1; i >= 0; i--) {
       TestEntity entity = createdEntities.get(i);
       try {
         APIResponse response = api.delete(entity.endpoint + "/" + entity.id);
-        if (response.status() == 200 || response.status() == 204) {
+        if (response.status() == HttpStatus.OK || response.status() == HttpStatus.NO_CONTENT) {
           System.out.println("♻️ Cleanup: deleted " + entity.type + " (ID=" + entity.id + ")");
         } else {
           System.out.println("⚠️ Cleanup warning: failed to delete " + entity.type + " (ID=" + entity.id + "), status: " + response.status());
@@ -48,7 +48,7 @@ public abstract class BaseEntityTest extends BaseApiTest {
         .setHeader("Content-Type", "application/json")
     );
 
-    assertEquals(201, response.status(),
+    assertEquals(HttpStatus.CREATED, response.status(),
       "Entity creation failed. Status: " + response.status() + ", Body: " + response.text());
 
     JSONObject createdEntity = new JSONObject(response.text()).getJSONObject("data");
@@ -57,7 +57,7 @@ public abstract class BaseEntityTest extends BaseApiTest {
       schema.validate(createdEntity);
     }
 
-    String entityType = endpoint.replaceAll("^/", ""); // remove leading "/"
+    String entityType = endpoint.replaceAll("^/", "");
     createdEntities.add(new TestEntity(entityType, createdEntity.getLong("id"), endpoint, createdEntity));
 
     return createdEntity;
@@ -65,19 +65,19 @@ public abstract class BaseEntityTest extends BaseApiTest {
 
   protected JSONObject getEntityById(String endpoint, Long id) {
     APIResponse response = api.get(endpoint + "/" + id);
-    assertEquals(200, response.status(), "GET " + endpoint + "/" + id + " failed with status: " + response.status());
+    assertEquals(HttpStatus.OK, response.status(), "GET " + endpoint + "/" + id + " failed with status: " + response.status());
     return new JSONObject(response.text()).getJSONObject("data");
   }
 
   protected JSONArray getAllEntities(String endpoint) {
     APIResponse response = api.get(endpoint);
-    assertEquals(200, response.status(), "GET " + endpoint + " failed with status: " + response.status());
+    assertEquals(HttpStatus.OK, response.status(), "GET " + endpoint + " failed with status: " + response.status());
     return new JSONObject(response.text()).getJSONArray("data");
   }
 
   protected void deleteEntity(String endpoint, Long id) {
     APIResponse response = api.delete(endpoint + "/" + id);
-    assertTrue(response.status() == 200 || response.status() == 204,
+    assertTrue(response.status() == HttpStatus.OK || response.status() == HttpStatus.NO_CONTENT,
       "DELETE " + endpoint + "/" + id + " failed with status: " + response.status());
   }
 
@@ -95,7 +95,6 @@ public abstract class BaseEntityTest extends BaseApiTest {
     for (int i = 0; i < entities.length(); i++) {
       Object fieldValue = entities.getJSONObject(i).get(field);
 
-      // Normalize number types to long
       if (fieldValue instanceof Number && value instanceof Number) {
         if (((Number) fieldValue).longValue() == ((Number) value).longValue()) {
           return entities.getJSONObject(i);

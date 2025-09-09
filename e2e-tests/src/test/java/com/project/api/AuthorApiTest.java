@@ -107,32 +107,42 @@ public class AuthorApiTest extends BaseEntityTest {
   @Feature("Author Retrieval")
   @Story("List Authors")
   @Severity(SeverityLevel.NORMAL)
-  @Description("Checks that a created author appears in GET /authors")
+  @Description("Checks that a created author appears in GET /authors and validates schema + fields")
   void shouldListAuthors() {
+    // create an author
     JSONObject authorData = new JSONObject()
       .put("name", "List Author " + System.currentTimeMillis())
       .put("birthDate", "1985-02-10")
       .put("nationality", "Listland");
 
+    int initialSize = getAllEntities("/authors").length();
+
     JSONObject createdAuthor = createEntity("/authors", authorData, AUTHOR_SCHEMA);
     Long id = createdAuthor.getLong("id");
 
+    // get authors
     JSONArray authors = getAllEntities("/authors");
     System.out.println("📋 Authors list response (" + authors.length() + " total):");
     for (int i = 0; i < authors.length(); i++) {
       System.out.println("   → " + authors.getJSONObject(i).toString(2));
     }
 
+    // Assert that size increased
+    assertEquals(initialSize + 1, authors.length(), "Authors list should have grown by 1");
+
+    // Assert that author exists
     JSONObject found = findEntityInList(authors, "id", id);
-
-    if (found == null) {
-      System.err.println("❌ Author with ID=" + id + " was not found in GET /authors");
-    }
-
     assertNotNull(found, "Created author must appear in GET /authors");
-    assertEquals(id, found.getLong("id"));
 
-    System.out.println("✅ Found author in list ID=" + id);
+    // Schema validation
+    AUTHOR_SCHEMA.validate(found);
+
+    // Field-level assertions
+    assertEquals(authorData.getString("name"), found.getString("name"));
+    assertEquals(authorData.getString("nationality"), found.getString("nationality"));
+    assertEquals(authorData.getString("birthDate"), found.getString("birthDate"));
+
+    System.out.println("✅ Found and validated author in list ID=" + id);
   }
 
   @Test
