@@ -34,6 +34,11 @@ public class AuthorsPageTest extends BaseTest {
     }
   }
 
+  @AfterEach
+  void tearDown() {
+    takeScreenshot("AuthorFormTest");
+  }
+
   @Test
   @Order(1)
   void shouldDisplayAuthorsLibraryTitle() {

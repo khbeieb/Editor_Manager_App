@@ -3,6 +3,7 @@ package com.project.base;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.LoadState;
 import com.project.config.PlaywrightFactory;
 import io.qameta.allure.Allure;
 import org.junit.jupiter.api.AfterAll;
@@ -18,6 +19,7 @@ public abstract class BaseTest {
 
   // Base URLs for UI and API
    protected static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
+
    protected static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
    //TODO: Remove after testing
    //  protected static final String BASE_UI_URL = "localhost:4200";
@@ -52,6 +54,8 @@ public abstract class BaseTest {
    */
   protected void navigateTo(String relativePath) {
     page.navigate(BASE_UI_URL + relativePath);
+    page.waitForLoadState(LoadState.NETWORKIDLE);
+
   }
 
   protected void takeScreenshot(String name) {

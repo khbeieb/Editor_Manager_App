@@ -1,6 +1,7 @@
 package com.project.ui;
 
 import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.options.LoadState;
 import com.project.base.BaseTest;
 import com.project.ui.pages.AuthorFormPage;
 import io.qameta.allure.Epic;
@@ -17,6 +18,8 @@ public class AuthorFormTest extends BaseTest {
   @BeforeEach
   void setUp() {
     navigateTo("/authors/new");
+    page.waitForLoadState(LoadState.NETWORKIDLE);
+
     formPage = new AuthorFormPage(page);
     formPage.waitForForm();
   }
