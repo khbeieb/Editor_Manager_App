@@ -36,7 +36,7 @@ public class AuthorsPageTest extends BaseTest {
 
   @AfterEach
   void tearDown() {
-    takeScreenshot("AuthorFormTest");
+    takeScreenshot("AuthorPageTest");
   }
 
   @Test
@@ -84,7 +84,7 @@ public class AuthorsPageTest extends BaseTest {
 
 
   @Test
-  @Order(6)
+  @Order(5)
   void shouldSortAuthors() {
     String id1 = TestDataHelper.createAuthor(api, "AAA Author", "French");
     String id2 = TestDataHelper.createAuthor(api, "ZZZ Author", "French");
@@ -95,47 +95,11 @@ public class AuthorsPageTest extends BaseTest {
     authorsPage.clickRefresh();
     authorsPage.waitForAuthorsData();
 
-    authorsPage.selectSortBy("name");
-    authorsPage.selectSortOrder("asc");
+    authorsPage.selectSortBy("Name");
+    authorsPage.selectSortOrder("Ascending");
 
     assertEquals("AAA Author", authorsPage.getFirstRowName());
   }
-
-//  @Test
-//  @Order(6)
-//  void shouldShowLoadingSpinnerWhenRefreshing() {
-//    // Ensure a default timeout is set
-//    page.setDefaultTimeout(30000);
-//    page.setDefaultNavigationTimeout(30000);
-//
-//    // Throttle API responses
-//    page.route("**/api/**", route -> {
-//      page.waitForTimeout(1000); // delay 1 second
-//      route.resume();
-//    });
-//
-//    // Trigger refresh
-//    authorsPage.clickRefresh();
-//
-//    // Screenshot for debugging
-//    page.screenshot(new Page.ScreenshotOptions().setPath(Paths.get("spinner_debug.png")));
-//
-//    // Pause Playwright for debugging
-//    page.pause();
-//
-//    // Wait for spinner
-//    Locator spinner = authorsPage.getLoadingSpinner();
-//    spinner.waitFor(new Locator.WaitForOptions()
-//      .setState(WaitForSelectorState.VISIBLE)
-//      .setTimeout(5000));
-//
-//    assertTrue(authorsPage.isLoadingVisible(), "Loading spinner should be visible after refresh");
-//
-//    // Wait until spinner disappears
-//    spinner.waitFor(new Locator.WaitForOptions()
-//      .setState(WaitForSelectorState.HIDDEN)
-//      .setTimeout(10000));
-//  }
 
   @Test
   @Order(6)

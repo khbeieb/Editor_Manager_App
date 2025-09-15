@@ -106,7 +106,7 @@ public class AuthorsListPage {
    */
   public void selectSortBy(String sortBy) {
     sortByFilter.click();
-    page.locator(".p-dropdown-item")
+    page.locator(".p-select-option span")
       .filter(new Locator.FilterOptions().setHasText(sortBy))
       .click();
   }
@@ -116,7 +116,7 @@ public class AuthorsListPage {
    */
   public void selectSortOrder(String order) {
     sortOrderFilter.click();
-    page.locator(".p-dropdown-item")
+    page.locator(".p-select-option span")
       .filter(new Locator.FilterOptions().setHasText(order))
       .click();
   }
