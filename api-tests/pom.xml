@@ -16,22 +16,38 @@
 
     <!-- Dependency versions -->
     <allure.version>2.29.0</allure.version>
-    <junit.jupiter.version>5.12.2</junit.jupiter.version>
+    <aspectj.version>1.9.22</aspectj.version>
+    <junit.jupiter.version>5.11.3</junit.jupiter.version>
     <playwright.version>1.53.0</playwright.version>
     <everit-json-schema.version>1.14.6</everit-json-schema.version>
     <json.version>20250517</json.version>
     <assertj.version>4.0.0-M1</assertj.version>
     <jackson.version>2.17.0</jackson.version>
     <lombok.version>1.18.38</lombok.version>
+    <junit-platform-suite-api.version>1.11.3</junit-platform-suite-api.version>
+    <cucumber.version>7.20.1</cucumber.version>
   </properties>
 
-  <!-- Dependency management for JUnit -->
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
         <version>5.12.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-bom</artifactId>
+        <version>${cucumber.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.qameta.allure</groupId>
+        <artifactId>allure-bom</artifactId>
+        <version>${allure.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -54,18 +70,18 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- JSON Schema validation -->
-    <dependency>
-      <groupId>com.github.erosb</groupId>
-      <artifactId>everit-json-schema</artifactId>
-      <version>${everit-json-schema.version}</version>
-    </dependency>
-
     <!-- JSON processing -->
     <dependency>
       <groupId>org.json</groupId>
       <artifactId>json</artifactId>
       <version>${json.version}</version>
+    </dependency>
+
+    <!-- JSON Schema validation -->
+    <dependency>
+      <groupId>com.github.erosb</groupId>
+      <artifactId>everit-json-schema</artifactId>
+      <version>${everit-json-schema.version}</version>
     </dependency>
 
     <!-- Fluent assertions -->
@@ -76,27 +92,66 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Jackson for POJO mapping -->
+    <!-- Jackson -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>${jackson.version}</version>
     </dependency>
 
-    <!-- Allure reporting -->
-    <dependency>
-      <groupId>io.qameta.allure</groupId>
-      <artifactId>allure-junit5</artifactId>
-      <version>${allure.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <!-- Lombok for model/builder -->
+    <!-- Lombok -->
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>${lombok.version}</version>
       <scope>provided</scope>
+    </dependency>
+
+    <!-- Cucumber -->
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-java</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-junit-platform-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit Platform Suite API -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-suite-api</artifactId>
+      <version>${junit-platform-suite-api.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Allure -->
+    <dependency>
+      <groupId>io.qameta.allure</groupId>
+      <artifactId>allure-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.qameta.allure</groupId>
+      <artifactId>allure-cucumber7-jvm</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- SLF4J for logging -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>2.0.16</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JNA -->
+    <dependency>
+      <groupId>net.java.dev.jna</groupId>
+      <artifactId>jna</artifactId>
+      <version>5.14.0</version>
     </dependency>
   </dependencies>
 
@@ -113,22 +168,53 @@
         </configuration>
       </plugin>
 
-      <!-- Surefire for JUnit 5 -->
+      <!-- Surefire for API + Cucumber tests -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.2.3</version>
+        <version>3.5.2</version>
         <configuration>
-          <skipTests>false</skipTests>
           <useModulePath>false</useModulePath>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+            <include>**/*Runner*.java</include>
+            <include>**/*CucumberRunnerTest*.java</include>
+          </includes>
+          <argLine>
+            -Dfile.encoding=${project.build.sourceEncoding}
+            -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
+          </argLine>
+          <systemPropertyVariables>
+            <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
+          </systemPropertyVariables>
         </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>${aspectj.version}</version>
+          </dependency>
+        </dependencies>
       </plugin>
 
-      <!-- Allure reporting plugin -->
+      <!-- Allure Maven plugin -->
       <plugin>
         <groupId>io.qameta.allure</groupId>
         <artifactId>allure-maven</artifactId>
         <version>2.15.0</version>
+        <configuration>
+          <reportVersion>${allure.version}</reportVersion>
+          <resultsDirectory>${project.build.directory}/allure-results</resultsDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>post-integration-test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
