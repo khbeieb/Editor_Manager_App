@@ -41,3 +41,6 @@ build/
 
 # Surefire reports
 /e2e-tests/target/surefire-reports/
+
+# Allure
+**/.allure/

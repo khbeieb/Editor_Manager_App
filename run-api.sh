@@ -29,8 +29,7 @@ docker compose \
   --file docker-compose.yml \
   --file "$DOCKER_COMPOSE_OVERRIDE" \
   run --rm api-tests sh -c "
-    cd /api-tests &&
-    mvn test -Dtest=CucumberTest
+    cd /api-tests && mvn clean test -Dmaven.test.failure.ignore=true io.qameta.allure:allure-maven:report
   "
 
 # Generate Allure report

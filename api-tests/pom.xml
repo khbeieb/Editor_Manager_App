@@ -181,21 +181,13 @@
             <include>**/*Runner*.java</include>
             <include>**/*CucumberRunnerTest*.java</include>
           </includes>
-          <argLine>
-            -Dfile.encoding=${project.build.sourceEncoding}
-            -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
-          </argLine>
+          <forkCount>1</forkCount>
+          <reuseForks>false</reuseForks>
+          <argLine>-Dfile.encoding=UTF-8</argLine>
           <systemPropertyVariables>
             <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
           </systemPropertyVariables>
         </configuration>
-        <dependencies>
-          <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-            <version>${aspectj.version}</version>
-          </dependency>
-        </dependencies>
       </plugin>
 
       <!-- Allure Maven plugin -->

@@ -8,8 +8,8 @@ import java.util.Arrays;
 
 public class PlaywrightCucumberFixtures {
 
-  protected static final String BASE_API_URL = "http://localhost:8080";
-    // System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
+  protected static final String BASE_API_URL = // "http://localhost:8080";
+    System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
 
   // ThreadLocal ensures each scenario/thread gets its own instance
   private static final ThreadLocal<Playwright> playwright = ThreadLocal.withInitial(() -> {
