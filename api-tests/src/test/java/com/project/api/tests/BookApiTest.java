@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Epic("Books API")
+@Epic("Book API Integration Tests")
 public class BookApiTest extends BaseEntityTest {
 
   private static Schema BOOK_SCHEMA;
