@@ -37,22 +37,32 @@ jobs:
             up -d --build db backend
 
       - name: Run API Tests and generate Allure results
+        # Use 'always()' here so the cleanup step always runs.
         if: always()
         run: |
+          # 1. Capture input tag (e.g., '@smoke')
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
+          # 2. Create JUnit 5 tag by stripping the '@' symbol (e.g., 'smoke')
+          JUNIT_TAG="${TAG_INPUT//@/}"
+
+          echo "Running tests with Cucumber Tags: $TAG_INPUT and JUnit Tags: $JUNIT_TAG"
+
+          # The maven command runs and generates XML/JSON results in api-tests/target/allure-results
           docker compose \
             --env-file ./config/.env.dev \
             -f docker-compose.yml \
             run --rm api-tests sh -c "
               cd /api-tests && \
               mvn clean test \
-                -Dcucumber.filter.tags='${{ github.event.inputs.cucumber_tags }}' \
+                -Dcucumber.filter.tags='$TAG_INPUT' \
+                -DincludeTags='$JUNIT_TAG' \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true \
-                -Dtest='com.project.api.tests.*Test,CucumberRunnerTest' \
                 -Dcucumber.features=src/test/resources/features
             "
 
       - name: Upload Allure JSON results (Raw data)
+        # We upload the raw results here. This artifact is used by the next job.
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -67,46 +77,58 @@ jobs:
           docker compose -f docker-compose.yml down
 
   allure-report-publish:
+    # This job only runs if the integration tests completed (even if they failed)
     needs: integration-tests
     runs-on: ubuntu-latest
+    # Tell GitHub that this job deploys to the 'github-pages' environment
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (Current Branch)
         uses: actions/checkout@v4
 
+      # 1. Download the raw results from the previous job
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
           name: allure-results-api-raw
           path: api-tests/target/allure-results
 
+      # 2. Load previous Allure history
+      # We check out the repository to find the history folder from the previous report generation.
       - name: Load Allure History
         uses: actions/checkout@v4
         if: always()
-        continue-on-error: true
+        continue-on-error: true # Allow the job to continue if the history folder doesn't exist yet (first run)
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ github.ref }} # Use the current branch to get the latest committed report history
           path: allure-history
 
+      # 3. Install Allure CLI locally on the runner
       - name: Install Allure CLI
         run: |
           echo "Installing Allure CLI..."
           ALLURE_VERSION="2.27.0"
           ALLURE_DIST="allure-commandline-$ALLURE_VERSION.zip"
+
+          # Download the official Allure Commandline binary
           curl -L -o "$ALLURE_DIST" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/$ALLURE_DIST"
           unzip "$ALLURE_DIST" -d /opt
           sudo mv /opt/allure-2.27.0 /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+
           echo "Allure version:"
           allure --version
 
+      # 4. Generate the static HTML report using the installed CLI (with History Merging)
       - name: Generate Allure HTML report
         run: |
           echo "Generating Allure report using installed CLI..."
           mkdir -p api-tests/target/allure-report
+
+          # Check if history exists in the checked-out folder and copy it into the results folder
           HISTORY_PATH="allure-history/api-tests/target/allure-report/history"
           if [ -d "$HISTORY_PATH" ]; then
             echo "Copying previous Allure history from $HISTORY_PATH..."
@@ -114,16 +136,21 @@ jobs:
           else
             echo "Previous Allure history not found. Generating without history merge."
           fi
+
+          # The CLI will automatically merge the 'history' folder if it exists in the results directory
           allure generate api-tests/target/allure-results -o api-tests/target/allure-report --clean
 
+      # 5. Configure GitHub Pages deployment environment
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      # 6. Upload the generated HTML report as a Pages Artifact
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'api-tests/target/allure-report'
 
+      # 7. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
