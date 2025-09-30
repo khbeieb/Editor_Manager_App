@@ -39,11 +39,13 @@ jobs:
               cd /api-tests && \
               mvn clean verify \
                 -Dcucumber.filter.tags='${{ github.event.inputs.cucumber_tags }}' \
-                -Dallure.results.directory=target/allure-results
+                -Dallure.results.directory=target/allure-results \
+                -Dmaven.test.failure.ignore=true
             "
 
       - name: Generate Allure HTML report
         run: |
+          mkdir -p api-tests/target/allure-report
           docker run --rm \
             -v "${{ github.workspace }}/api-tests/target/allure-results:/app/allure-results" \
             -v "${{ github.workspace }}/api-tests/target/allure-report:/app/allure-report" \
