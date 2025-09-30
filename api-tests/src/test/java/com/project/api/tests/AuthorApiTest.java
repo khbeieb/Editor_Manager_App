@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Epic("Authors API Integration Tests")
+@DisplayName("Author management Suite")
 public class AuthorApiTest extends BaseEntityTest {
 
   private static Schema AUTHOR_SCHEMA;
