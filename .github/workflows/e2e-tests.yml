@@ -1,0 +1,49 @@
+name: E2E Tests (Playwright)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Cucumber tags to run (e.g., @smoke, @regression)"
+        required: false
+        default: "@smoke"
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start full stack
+        run: |
+          docker compose \
+            --env-file ./config/.env.dev \
+            -f docker-compose.yml \
+            up -d --build db backend frontend
+
+      - name: Run E2E Tests
+        run: |
+          docker compose \
+            --env-file ./config/.env.dev \
+            -f docker-compose.yml \
+            run --rm e2e-tests sh -c "
+              cd /e2e-tests && \
+              mvn clean verify \
+                -Dcucumber.filter.tags='${{ github.event.inputs.tags }}' \
+                -Dallure.results.directory=target/allure-results
+            "
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-e2e
+          path: e2e-tests/target/allure-results
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f docker-compose.yml down

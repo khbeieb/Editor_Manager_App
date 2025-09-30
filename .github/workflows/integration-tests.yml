@@ -3,10 +3,14 @@ name: Integration Tests (API)
 on:
   workflow_dispatch:
     inputs:
-      tags:
-        description: "Cucumber tags to run (e.g., @smoke, @regression)"
-        required: false
-        default: "@regression"
+      cucumber_tags:
+        description: "Select the Cucumber tag suite to run"
+        required: true
+        type: choice
+        options:
+          - "@smoke"
+          - "@regression"
+          - "@integration"
 
 jobs:
   integration-tests:
@@ -34,15 +38,23 @@ jobs:
             run --rm api-tests sh -c "
               cd /api-tests && \
               mvn clean verify \
-                -Dcucumber.filter.tags='${{ github.event.inputs.tags }}' \
+                -Dcucumber.filter.tags='${{ github.event.inputs.cucumber_tags }}' \
                 -Dallure.results.directory=target/allure-results
             "
 
-      - name: Upload Allure results
+      - name: Generate Allure HTML report
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/api-tests/target/allure-results:/app/allure-results" \
+            -v "${{ github.workspace }}/api-tests/target/allure-report:/app/allure-report" \
+            frankescobar/allure-docker-service:latest \
+            allure generate /app/allure-results -o /app/allure-report --clean
+
+      - name: Upload Allure HTML report
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results-api
-          path: api-tests/target/allure-results
+          name: allure-report-api
+          path: api-tests/target/allure-report
 
       - name: Stop stack
         if: always()

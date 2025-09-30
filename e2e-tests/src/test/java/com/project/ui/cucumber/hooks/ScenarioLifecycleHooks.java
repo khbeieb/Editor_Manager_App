@@ -1,7 +1,6 @@
 package com.project.ui.cucumber.hooks;
 
 import com.microsoft.playwright.APIRequest;
-import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.APIRequestContext;
 import com.project.ui.cucumber.steps.AuthorsSteps;
 import com.project.utils.TestDataHelper;
@@ -18,9 +17,10 @@ public class ScenarioLifecycleHooks {
   public void cleanupCreatedAuthors() {
     if (AuthorsSteps.createdAuthorIds.isEmpty()) return;
 
-    try (Playwright playwright = Playwright.create()) {
+    try {
+      // Use same Playwright instance as in tests
       APIRequestContext tempApi = PlaywrightHooks.playwright.request().newContext(
-        new APIRequest.NewContextOptions().setBaseURL("http://localhost:8080")
+        new APIRequest.NewContextOptions().setBaseURL(PlaywrightHooks.BASE_API_URL)
       );
 
       for (String authorId : new ArrayList<>(AuthorsSteps.createdAuthorIds)) {
@@ -30,6 +30,8 @@ public class ScenarioLifecycleHooks {
           System.err.println("⚠️ Failed to delete author " + authorId + ": " + e.getMessage());
         }
       }
+    } catch (Exception e) {
+      System.err.println("⚠️ Cleanup error: " + e.getMessage());
     }
 
     AuthorsSteps.createdAuthorIds.clear();
@@ -39,13 +41,13 @@ public class ScenarioLifecycleHooks {
   public void takeScreenshotOnFailure(Scenario scenario) {
     if (scenario.isFailed() && PlaywrightHooks.page != null) {
       try {
-        // Attach to Cucumber report
+        // Attach screenshot to Cucumber report
         byte[] screenshot = PlaywrightHooks.page.screenshot(
           new com.microsoft.playwright.Page.ScreenshotOptions().setFullPage(true)
         );
         scenario.attach(screenshot, "image/png", "screenshot");
 
-        // Save to disk for local inspection
+        // Save screenshot locally
         PlaywrightHooks.page.screenshot(
           new com.microsoft.playwright.Page.ScreenshotOptions()
             .setPath(Paths.get("target/screenshots/" + scenario.getName().replace(" ", "_") + ".png"))
