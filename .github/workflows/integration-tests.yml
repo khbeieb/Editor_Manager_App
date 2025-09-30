@@ -43,7 +43,17 @@ jobs:
                 -Dmaven.test.failure.ignore=true
             "
 
-      - name: Generate Allure HTML report
+      - name: Upload Allure JSON results
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api
+          path: api-tests/target/allure-results
+
+      # -----------------------------
+      # Optional: generate HTML report
+      # -----------------------------
+      - name: Generate Allure HTML report (optional)
+        if: ${{ always() }}
         run: |
           mkdir -p api-tests/target/allure-report
           docker run --rm \
@@ -52,7 +62,8 @@ jobs:
             frankescobar/allure-docker-service:latest \
             allure generate /app/allure-results -o /app/allure-report --clean
 
-      - name: Upload Allure HTML report
+      - name: Upload Allure HTML report (optional)
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: allure-report-api
