@@ -12,6 +12,11 @@ on:
           - "@regression"
           - "@integration"
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
@@ -25,50 +30,73 @@ jobs:
 
       - name: Start backend stack
         run: |
+          echo "Starting backend stack..."
           docker compose \
             --env-file ./config/.env.dev \
             -f docker-compose.yml \
             up -d --build db backend
 
-      - name: Run API Tests
+      - name: Run API Tests and generate Allure results
+        if: always()
         run: |
           docker compose \
             --env-file ./config/.env.dev \
             -f docker-compose.yml \
             run --rm api-tests sh -c "
               cd /api-tests && \
-              mvn clean verify \
+              mvn clean test \
                 -Dcucumber.filter.tags='${{ github.event.inputs.cucumber_tags }}' \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true
             "
 
-      - name: Upload Allure JSON results
+      - name: Upload Allure JSON results (Raw data)
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: allure-results-api
+          name: allure-results-api-raw
           path: api-tests/target/allure-results
-
-      # -----------------------------
-      # Optional: generate HTML report
-      # -----------------------------
-      - name: Generate Allure HTML report (optional)
-        if: ${{ always() }}
-        run: |
-          mkdir -p api-tests/target/allure-report
-          docker run --rm \
-            -v "${{ github.workspace }}/api-tests/target/allure-results:/app/allure-results" \
-            -v "${{ github.workspace }}/api-tests/target/allure-report:/app/allure-report" \
-            frankescobar/allure-docker-service:latest \
-            allure generate /app/allure-results -o /app/allure-report --clean
-
-      - name: Upload Allure HTML report (optional)
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report-api
-          path: api-tests/target/allure-report
+          retention-days: 7
 
       - name: Stop stack
         if: always()
-        run: docker compose -f docker-compose.yml down
+        run: |
+          echo "Stopping Docker stack..."
+          docker compose -f docker-compose.yml down
+
+  allure-report-publish:
+    needs: integration-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Allure JSON results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-api-raw
+          path: api-tests/target/allure-results
+
+      - name: Generate Allure HTML report
+        run: |
+          echo "Generating Allure report..."
+          mkdir -p api-tests/target/allure-report
+          docker run --rm \
+            -v "${{ github.workspace }}/api-tests/target/allure-results:/app/allure-results:ro" \
+            -v "${{ github.workspace }}/api-tests/target/allure-report:/app/allure-report" \
+            allure/allure:latest \
+            allure generate --clean /app/allure-results -o /app/allure-report
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'api-tests/target/allure-report'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        if: success()
