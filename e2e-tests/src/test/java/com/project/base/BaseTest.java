@@ -18,12 +18,12 @@ public abstract class BaseTest {
   protected static APIRequestContext api;
 
   // Base URLs for UI and API
-   protected static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
+    protected static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
 
-   protected static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
+    protected static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
    //TODO: Remove after testing
-   //  protected static final String BASE_UI_URL = "localhost:4200";
-  //  protected static final String BASE_API_URL = "localhost:8080";
+//    protected static final String BASE_UI_URL = "localhost:4200";
+//   protected static final String BASE_API_URL = "localhost:8080";
   @BeforeAll
   static void globalSetup() {
     // Initialize browser via factory

@@ -13,20 +13,24 @@ services:
       MYSQL_DB: ${MYSQL_DB}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    restart: unless-stopped
 
   db:
     image: mysql:8.0
     environment:
       MYSQL_DATABASE: ${MYSQL_DB}
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "${MYSQL_PORT}:3306"
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
+    restart: unless-stopped
 
   frontend:
     build:
-      dockerfile: Dockerfile.dev.dockerfile
+      dockerfile: Dockerfile.dockerfile
       context: ./frontend
     ports:
       - "${FRONTEND_PORT}:4200"
@@ -39,6 +43,7 @@ services:
       - backend
     environment:
       - API_BASE_URL=${API_BASE_URL}
+    restart: unless-stopped
 
   e2e-tests:
     build:
@@ -52,9 +57,23 @@ services:
       E2E_BASE_URL_API: "http://backend:8080"
     command: mvn test
     volumes:
-      - ./e2e-tests:/e2e
+      - ./e2e-tests:/e2e-tests
       - ~/.m2:/root/.m2
-    working_dir: /e2e
+    working_dir: /e2e-tests
+
+  api-tests:
+    build:
+      context: ./api-tests
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      API_BASE_URL: "http://backend:8080"
+    command: mvn test
+    volumes:
+      - ./api-tests:/api-tests
+      - ~/.m2:/root/.m2
+    working_dir: /api-tests
 
 volumes:
   db_data:
