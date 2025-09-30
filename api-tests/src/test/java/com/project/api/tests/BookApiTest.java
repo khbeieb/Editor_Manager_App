@@ -8,7 +8,7 @@ import io.qameta.allure.*;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.*; // Import required for @Tag
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,6 +42,8 @@ public class BookApiTest extends BaseEntityTest {
   @Story("Create Book with Author")
   @Severity(SeverityLevel.CRITICAL)
   @Description("Creates an author and then creates a book linked to that author")
+  @Tag("smoke") // Critical, basic flow check
+  @Tag("integration")
   void shouldCreateBookWithAuthor() {
     JSONObject authorData = new JSONObject()
       .put("name", "Test Author " + System.currentTimeMillis())
@@ -73,6 +75,8 @@ public class BookApiTest extends BaseEntityTest {
   @Story("List All Books")
   @Severity(SeverityLevel.NORMAL)
   @Description("Retrieves all books and verifies the created book appears in the list")
+  @Tag("regression") // Standard read operation
+  @Tag("integration")
   void shouldListAllBooks() {
     JSONObject authorData = new JSONObject()
       .put("name", "List Test Author " + System.currentTimeMillis())
@@ -106,6 +110,8 @@ public class BookApiTest extends BaseEntityTest {
   @Story("Get Book by ISBN")
   @Severity(SeverityLevel.CRITICAL)
   @Description("Retrieves a book by its ISBN")
+  @Tag("smoke") // Critical lookup by unique identifier
+  @Tag("integration")
   void shouldGetBookByIsbn() {
     JSONObject authorData = new JSONObject()
       .put("name", "ISBN Test Author " + System.currentTimeMillis())
@@ -140,6 +146,8 @@ public class BookApiTest extends BaseEntityTest {
   @Story("Delete Book")
   @Severity(SeverityLevel.CRITICAL)
   @Description("Deletes a book and verifies it no longer exists")
+  @Tag("regression") // Critical cleanup/management flow
+  @Tag("integration")
   void shouldDeleteBook() {
     JSONObject authorData = new JSONObject()
       .put("name", "Delete Test Author " + System.currentTimeMillis())
@@ -174,6 +182,7 @@ public class BookApiTest extends BaseEntityTest {
   @Story("Invalid Book Creation")
   @Severity(SeverityLevel.NORMAL)
   @Description("Verifies proper error handling for invalid book data")
+  @Tag("regression") // Validation/error handling test
   void shouldRejectInvalidBookData() {
     JSONObject invalidBook = new JSONObject()
       .put("title", "Incomplete Book");
@@ -195,6 +204,7 @@ public class BookApiTest extends BaseEntityTest {
   @Story("Duplicate ISBN")
   @Severity(SeverityLevel.NORMAL)
   @Description("Verifies that duplicate ISBNs are properly handled")
+  @Tag("regression") // Business logic/constraint validation
   void shouldHandleDuplicateIsbn() {
     JSONObject authorData = new JSONObject()
       .put("name", "Duplicate Test Author " + System.currentTimeMillis())
