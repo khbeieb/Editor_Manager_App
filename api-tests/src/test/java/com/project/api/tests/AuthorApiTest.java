@@ -30,6 +30,7 @@ public class AuthorApiTest extends BaseEntityTest {
   }
 
   @Test
+  @Tag("smoke") @Tag("regression") @Tag("integration")
   @Order(1)
   @Feature("Author Creation")
   @Story("Create Simple Author")
@@ -50,6 +51,7 @@ public class AuthorApiTest extends BaseEntityTest {
   }
 
   @Test
+  @Tag("regression") @Tag("integration")
   @Order(2)
   @Feature("Author Creation")
   @Story("Create Author with Books")
@@ -103,6 +105,7 @@ public class AuthorApiTest extends BaseEntityTest {
   }
 
   @Test
+  @Tag("smoke") @Tag("regression") @Tag("integration")
   @Order(3)
   @Feature("Author Retrieval")
   @Story("List Authors")
@@ -146,6 +149,7 @@ public class AuthorApiTest extends BaseEntityTest {
   }
 
   @Test
+  @Tag("regression") @Tag("integration")
   @Order(4)
   @Feature("Author Management")
   @Story("Delete Author with Books")
@@ -180,6 +184,7 @@ public class AuthorApiTest extends BaseEntityTest {
   }
 
   @Test
+  @Tag("regression")
   @Order(5)
   @Feature("Author Validation")
   @Story("Invalid Author Data")
@@ -203,6 +208,7 @@ public class AuthorApiTest extends BaseEntityTest {
   }
 
   @Test
+  @Tag("regression") @Tag("integration")
   @Order(6)
   @Feature("Author Validation")
   @Story("Duplicate Author Name")
@@ -230,6 +236,7 @@ public class AuthorApiTest extends BaseEntityTest {
   }
 
   @Test
+  @Tag("regression") @Tag("integration")
   @Order(7)
   @Feature("Author Validation")
   @Story("Duplicate Book ISBN in Author Cascade")
