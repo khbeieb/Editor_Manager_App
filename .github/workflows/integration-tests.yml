@@ -21,48 +21,82 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  - name: Set up Docker Buildx
-    uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-  - name: Start backend stack
-    run: |
-      echo "Starting backend stack..."
-      docker compose \
-        --env-file ./config/.env.dev \
-        -f docker-compose.yml \
-        up -d --build db backend
+      - name: Start backend stack
+        run: |
+          echo "Starting backend stack..."
+          docker compose \
+            --env-file ./config/.env.dev \
+            -f docker-compose.yml \
+            up -d --build db backend
 
-  - name: Run API Tests and generate Allure results
-    # Use 'always()' here so the cleanup step always runs.
-    if: always()
-    run: |
-      # The maven command runs and generates XML/JSON results in api-tests/target/allure-results
-      docker compose \
-        --env-file ./config/.env.dev \
-        -f docker-compose.yml \
-        run --rm api-tests sh -c "
-          cd /api-tests && \
-          mvn clean test \
-            -Dcucumber.filter.tags='${{ github.event.inputs.cucumber_tags }}' \
-            -Dallure.results.directory=target/allure-results \
-            -Dmaven.test.failure.ignore=true
-        "
+      - name: Run API Tests and generate Allure results
+        if: always()
+        run: |
+          docker compose \
+            --env-file ./config/.env.dev \
+            -f docker-compose.yml \
+            run --rm api-tests sh -c "
+              cd /api-tests && \
+              mvn clean test \
+                -Dcucumber.filter.tags='${{ github.event.inputs.cucumber_tags }}' \
+                -Dallure.results.directory=target/allure-results \
+                -Dmaven.test.failure.ignore=true
+            "
 
-  - name: Upload Allure JSON results (Raw data)
-    # We upload the raw results here. This artifact is used by the next job.
-    uses: actions/upload-artifact@v4
-    if: always()
-    with:
-      name: allure-results-api-raw
-      path: api-tests/target/allure-results
-      retention-days: 7 # Keep raw data for a week
+      - name: Upload Allure JSON results (Raw data)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-api-raw
+          path: api-tests/target/allure-results
+          retention-days: 7
 
-  - name: Stop stack
-    if: always()
-    run: |
-      echo "Stopping Docker stack..."
-      docker compose -f docker-compose.yml down
+      - name: Stop stack
+        if: always()
+        run: |
+          echo "Stopping Docker stack..."
+          docker compose -f docker-compose.yml down
+
+  allure-report-publish:
+    needs: integration-tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Allure JSON results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-api-raw
+          path: api-tests/target/allure-results
+
+      - name: Generate Allure HTML report
+        run: |
+          echo "Generating Allure report..."
+          mkdir -p api-tests/target/allure-report
+          docker run --rm \
+            -v "${{ github.workspace }}/api-tests/target/allure-results:/app/allure-results:ro" \
+            -v "${{ github.workspace }}/api-tests/target/allure-report:/app/allure-report" \
+            allure-framework/allure-commandline:latest \
+            allure generate --clean /app/allure-results -o /app/allure-report
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'api-tests/target/allure-report'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        if: success()
