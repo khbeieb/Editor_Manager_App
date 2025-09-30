@@ -25,6 +25,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up JDK 17 and Cache Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven' # This enables caching of the ~/.m2/repository
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -55,7 +62,7 @@ jobs:
               cd /api-tests && \
               mvn clean test \
                 -Dcucumber.filter.tags='$TAG_INPUT' \
-                -DincludeTags='$JUNIT_TAG' \
+                -Djunit.include.tags='$JUNIT_TAG' \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true \
                 -Dcucumber.features=src/test/resources/features

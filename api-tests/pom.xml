@@ -26,6 +26,8 @@
     <lombok.version>1.18.38</lombok.version>
     <junit-platform-suite-api.version>1.11.3</junit-platform-suite-api.version>
     <cucumber.version>7.20.1</cucumber.version>
+    <!-- Property for JUnit 5 Tag Filtering -->
+    <junit.include.tags></junit.include.tags>
   </properties>
 
   <dependencyManagement>
@@ -183,6 +185,7 @@
           </includes>
           <forkCount>1</forkCount>
           <reuseForks>false</reuseForks>
+          <groups>${junit.include.tags}</groups>
           <argLine>-Dfile.encoding=UTF-8</argLine>
           <systemPropertyVariables>
             <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
