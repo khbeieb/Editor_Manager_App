@@ -12,11 +12,6 @@ on:
           - "@regression"
           - "@integration"
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
@@ -72,37 +67,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Download the raw results from the previous job
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
           name: allure-results-api-raw
           path: api-tests/target/allure-results
 
-      # 2. Generate the static HTML report using the standard Allure CLI container
       - name: Generate Allure HTML report
         run: |
           echo "Generating Allure report..."
           mkdir -p api-tests/target/allure-report
-          # Use the Allure Docker Service image, which is generally reliable in CI, to generate the static report
           docker run --rm \
             -v "${{ github.workspace }}/api-tests/target/allure-results:/app/allure-results:ro" \
             -v "${{ github.workspace }}/api-tests/target/allure-report:/app/allure-report" \
             frankescobar/allure-docker-service:latest \
             allure generate /app/allure-results -o /app/allure-report --clean
 
-      # 3. Upload the generated HTML report as a Pages Artifact (best practice for web reports)
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload Allure HTML Report (Downloadable)
+        uses: actions/upload-artifact@v4
         with:
-          path: 'api-tests/target/allure-report'
-
-      # 4. Deploy to GitHub Pages (allows users to view the report immediately via a public URL)
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        if: success()
-        # The URL for the report will be available in the deployment summary!
+          name: allure-report-api-html
+          path: api-tests/target/allure-report
+          retention-days: 5
