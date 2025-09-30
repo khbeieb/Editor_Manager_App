@@ -31,7 +31,7 @@ docker compose \
     mvn clean test \
       -Dmaven.test.failure.ignore=true \
       -Dallure.results.directory=target/allure-results \
-      -Dtest='com.project.api.tests.*Test,CucumberRunnerTest' \
+#      -Dtest='com.project.api.tests.*Test,CucumberRunnerTest' \
       -Dcucumber.features=src/test/resources/features
   "
 

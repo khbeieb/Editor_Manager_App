@@ -48,7 +48,8 @@ jobs:
                 -Dcucumber.filter.tags='${{ github.event.inputs.cucumber_tags }}' \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true \
-                -Dtest='com.project.api.tests.*Test,CucumberRunnerTest'
+                -Dtest='com.project.api.tests.*Test,CucumberRunnerTest' \
+                -Dcucumber.features=src/test/resources/features
             "
 
       - name: Upload Allure JSON results (Raw data)
