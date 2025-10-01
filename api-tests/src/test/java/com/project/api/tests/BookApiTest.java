@@ -8,7 +8,7 @@ import io.qameta.allure.*;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.jupiter.api.*; // Import required for @Tag
+import org.junit.jupiter.api.*;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

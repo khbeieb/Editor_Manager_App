@@ -17,6 +17,8 @@ permissions:
   pages: write # Required for deployment
   id-token: write # Required for OIDC authentication with Pages
 
+run-name: API Test Run:${{ github.event.inputs.cucumber_tags }}
+
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
