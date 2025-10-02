@@ -25,7 +25,6 @@ permissions:
   pages: write
   id-token: write
 
-# Dynamic run name shows env + tag
 run-name: "E2E Test Run on ENV: ${{ github.event.inputs.environment }} TAG: ${{ github.event.inputs.cucumber_tags }}"
 
 jobs:
@@ -56,7 +55,6 @@ jobs:
 
       - name: Start full stack
         run: |
-          echo "Starting frontend + backend stack for env=${{ github.event.inputs.environment }} ..."
           docker compose \
             --env-file ./config/.env.${{ github.event.inputs.environment }} \
             -f docker-compose.yml \
@@ -66,8 +64,6 @@ jobs:
         if: always()
         run: |
           TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
-          echo "Running Playwright E2E with Tags: $TAG_INPUT | Env: ${{ github.event.inputs.environment }}"
-
           docker compose \
             --env-file ./config/.env.${{ github.event.inputs.environment }} \
             -f docker-compose.yml \
@@ -90,9 +86,7 @@ jobs:
 
       - name: Stop stack
         if: always()
-        run: |
-          echo "Stopping Docker stack..."
-          docker compose -f docker-compose.yml down
+        run: docker compose -f docker-compose.yml down
 
   allure-report-publish:
     needs: e2e-tests
@@ -118,12 +112,12 @@ jobs:
           unzip allure.zip -d /opt
           sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
-          allure --version
 
       - name: Generate Allure HTML report
         run: |
+          allure generate e2e-tests/target/allure-results -o e2e-tests/target/allure-report --clean
           mkdir -p site/e2e
-          allure generate e2e-tests/target/allure-results -o site/e2e --clean
+          cp -r e2e-tests/target/allure-report/* site/e2e/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

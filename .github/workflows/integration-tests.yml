@@ -25,7 +25,6 @@ permissions:
   pages: write
   id-token: write
 
-# Dynamic run-name includes both environment + tags
 run-name: "Integration Test Run on ENV: ${{ github.event.inputs.environment }} TAG: ${{ github.event.inputs.cucumber_tags }}"
 
 jobs:
@@ -56,7 +55,6 @@ jobs:
 
       - name: Start backend stack
         run: |
-          echo "Starting backend stack for env=${{ github.event.inputs.environment }} ..."
           docker compose \
             --env-file ./config/.env.${{ github.event.inputs.environment }} \
             -f docker-compose.yml \
@@ -67,9 +65,6 @@ jobs:
         run: |
           TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
           JUNIT_TAG="${TAG_INPUT//@/}"
-
-          echo "Running tests with Tags: $TAG_INPUT | Env: ${{ github.event.inputs.environment }}"
-
           docker compose \
             --env-file ./config/.env.${{ github.event.inputs.environment }} \
             -f docker-compose.yml \
@@ -93,9 +88,7 @@ jobs:
 
       - name: Stop stack
         if: always()
-        run: |
-          echo "Stopping Docker stack..."
-          docker compose -f docker-compose.yml down
+        run: docker compose -f docker-compose.yml down
 
   allure-report-publish:
     needs: integration-tests
@@ -121,12 +114,12 @@ jobs:
           unzip allure.zip -d /opt
           sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
-          allure --version
 
       - name: Generate Allure HTML report
         run: |
+          allure generate api-tests/target/allure-results -o api-tests/target/allure-report --clean
           mkdir -p site/api
-          allure generate api-tests/target/allure-results -o site/api --clean
+          cp -r api-tests/target/allure-report/* site/api/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
