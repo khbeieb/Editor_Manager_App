@@ -121,10 +121,12 @@ jobs:
           unzip allure.zip -d /opt
           sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+          allure --version
 
       - name: Generate Allure HTML report
         run: |
-          allure generate api-tests/target/allure-results -o api-tests/target/allure-report --clean
+          mkdir -p site/api
+          allure generate api-tests/target/allure-results -o site/api --clean
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -132,7 +134,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'api-tests/target/allure-report'
+          path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
