@@ -115,9 +115,7 @@ jobs:
 
       - name: Generate Allure HTML report
         run: |
-          allure generate e2e-tests/target/allure-results -o e2e-tests/target/allure-report --clean
-          mkdir -p site/e2e
-          cp -r e2e-tests/target/allure-report/* site/e2e/
+          allure generate e2e-tests/target/allure-results -o site --clean
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

@@ -117,9 +117,7 @@ jobs:
 
       - name: Generate Allure HTML report
         run: |
-          allure generate api-tests/target/allure-results -o api-tests/target/allure-report --clean
-          mkdir -p site/api
-          cp -r api-tests/target/allure-report/* site/api/
+          allure generate api-tests/target/allure-results -o site --clean
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
