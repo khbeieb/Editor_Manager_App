@@ -3,10 +3,30 @@ name: E2E Tests (Playwright)
 on:
   workflow_dispatch:
     inputs:
-      tags:
-        description: "Cucumber tags to run (e.g., @smoke, @regression)"
-        required: false
-        default: "@smoke"
+      cucumber_tags:
+        description: "Select the Cucumber tag suite to run"
+        required: true
+        type: choice
+        options:
+          - "@smoke"
+          - "@regression"
+          - "@integration"
+      environment:
+        description: "Select the environment configuration"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Dynamic run name shows env + tag
+run-name: "E2E Test Run on ENV: ${{ github.event.inputs.environment }} TAG: ${{ github.event.inputs.cucumber_tags }}"
 
 jobs:
   e2e-tests:
@@ -16,34 +36,103 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up JDK 17 and Cache Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Start full stack
         run: |
+          echo "Starting frontend + backend stack for env=${{ github.event.inputs.environment }} ..."
           docker compose \
-            --env-file ./config/.env.dev \
+            --env-file ./config/.env.${{ github.event.inputs.environment }} \
             -f docker-compose.yml \
             up -d --build db backend frontend
 
-      - name: Run E2E Tests
+      - name: Run E2E Tests and generate Allure results
+        if: always()
         run: |
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
+
+          echo "Running Playwright E2E with Tags: $TAG_INPUT | Env: ${{ github.event.inputs.environment }}"
+
           docker compose \
-            --env-file ./config/.env.dev \
+            --env-file ./config/.env.${{ github.event.inputs.environment }} \
             -f docker-compose.yml \
             run --rm e2e-tests sh -c "
               cd /e2e-tests && \
-              mvn clean verify \
-                -Dcucumber.filter.tags='${{ github.event.inputs.tags }}' \
-                -Dallure.results.directory=target/allure-results
+              mvn clean test \
+                -Dcucumber.filter.tags='$TAG_INPUT' \
+                -Dallure.results.directory=target/allure-results \
+                -Dmaven.test.failure.ignore=true \
+                -Dcucumber.features=src/test/resources/features
             "
 
-      - name: Upload Allure results
+      - name: Upload Allure JSON results (Raw data)
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: allure-results-e2e
+          name: allure-results-e2e-${{ github.event.inputs.environment }}
           path: e2e-tests/target/allure-results
+          retention-days: 7
 
       - name: Stop stack
         if: always()
-        run: docker compose -f docker-compose.yml down
+        run: |
+          echo "Stopping Docker stack..."
+          docker compose -f docker-compose.yml down
+
+  allure-report-publish:
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Allure JSON results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-e2e-${{ github.event.inputs.environment }}
+          path: e2e-tests/target/allure-results
+
+      - name: Install Allure CLI
+        run: |
+          ALLURE_VERSION="2.27.0"
+          curl -L -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
+          unzip allure.zip -d /opt
+          sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+          allure --version
+
+      - name: Generate Allure HTML report
+        run: |
+          allure generate e2e-tests/target/allure-results -o e2e-tests/target/allure-report --clean
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'e2e-tests/target/allure-report'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

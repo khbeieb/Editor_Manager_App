@@ -6,6 +6,8 @@ import com.project.base.BaseTest;
 import com.project.ui.pages.AuthorsListPage;
 import com.project.utils.TestDataHelper;
 import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Story;
 import org.junit.jupiter.api.*;
 
 import java.nio.file.Paths;
@@ -14,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @Epic("Authors Page")
+@Feature("Author Management")
 public class AuthorsPageTest extends BaseTest {
   private AuthorsListPage authorsPage;
   private String createdAuthorId;
@@ -41,6 +44,8 @@ public class AuthorsPageTest extends BaseTest {
 
   @Test
   @Order(1)
+  @Tag("smoke")
+  @Story("Page Rendering")
   void shouldDisplayAuthorsLibraryTitle() {
     assertTrue(authorsPage.getTitle().contains("Authors Library"));
 
@@ -51,13 +56,16 @@ public class AuthorsPageTest extends BaseTest {
 
   @Test
   @Order(2)
+  @Tag("regression")
+  @Story("Empty State")
   void shouldShowEmptyMessageWhenNoAuthors() {
-    // Precondition: DB should be empty (depends on test isolation strategy)
     assertTrue(authorsPage.isEmptyMessageVisible());
   }
 
   @Test
   @Order(3)
+  @Tag("smoke")
+  @Story("CRUD Operations")
   void shouldCreateAndDisplayAuthorInTable() {
     createdAuthorId = TestDataHelper.createAuthor(api, "Test Author", "French");
 
@@ -70,6 +78,8 @@ public class AuthorsPageTest extends BaseTest {
 
   @Test
   @Order(4)
+  @Tag("regression")
+  @Story("Filtering")
   void shouldFilterAuthorsByName() {
     createdAuthorId = TestDataHelper.createAuthor(api, "Unique Author", "German");
 
@@ -82,14 +92,14 @@ public class AuthorsPageTest extends BaseTest {
     assertEquals("Unique Author", authorsPage.getFirstRowName());
   }
 
-
   @Test
   @Order(5)
+  @Tag("regression")
+  @Story("Sorting")
   void shouldSortAuthors() {
     String id1 = TestDataHelper.createAuthor(api, "AAA Author", "French");
     String id2 = TestDataHelper.createAuthor(api, "ZZZ Author", "French");
     createdAuthorId = id1;
-    // cleanup second author immediately
     TestDataHelper.deleteAuthor(api, id2);
 
     authorsPage.clickRefresh();
@@ -103,8 +113,9 @@ public class AuthorsPageTest extends BaseTest {
 
   @Test
   @Order(6)
+  @Tag("regression")
+  @Story("Error Handling")
   void shouldHandleErrorStateGracefully() {
-    // Forcing error state would require API to be unavailable
     navigateTo("/authors");
     authorsPage.waitForAuthorsData();
 

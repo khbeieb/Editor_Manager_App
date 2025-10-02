@@ -26,7 +26,7 @@ permissions:
   id-token: write
 
 # Dynamic run-name includes both environment + tags
-run-name: "API Test Run: env=${{ github.event.inputs.environment }} tags=${{ github.event.inputs.cucumber_tags }}"
+run-name: "Integration Test Run on ENV: ${{ github.event.inputs.environment }} TAG: ${{ github.event.inputs.cucumber_tags }}"
 
 jobs:
   integration-tests:
