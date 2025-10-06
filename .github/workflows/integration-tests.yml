@@ -132,6 +132,16 @@ jobs:
         run: |
           allure generate api-tests/target/allure-results -o site --clean
 
+      # -------------------------------
+      # Upload Allure HTML as artifact
+      # -------------------------------
+      - name: Upload Allure HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-html-report-integration-${{ github.run_id }}
+          path: site
+          retention-days: 7
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

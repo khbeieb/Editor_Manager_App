@@ -101,7 +101,7 @@ jobs:
         run: docker compose -f docker-compose.yml down
 
   allure-report-publish:
-    needs: e2e-tests
+    needs: integration-tests
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -114,8 +114,8 @@ jobs:
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-e2e-${{ github.run_id }}
-          path: e2e-tests/target/allure-results
+          name: allure-results-api-${{ github.run_id }}
+          path: api-tests/target/allure-results
 
       - name: Install Allure CLI
         run: |
@@ -127,7 +127,17 @@ jobs:
 
       - name: Generate Allure HTML report
         run: |
-          allure generate e2e-tests/target/allure-results -o site --clean
+          allure generate api-tests/target/allure-results -o site --clean
+
+      # -------------------------------
+      # Upload Allure HTML as artifact
+      # -------------------------------
+      - name: Upload Allure HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-html-report-e2e-${{ github.run_id }}
+          path: site
+          retention-days: 7
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
