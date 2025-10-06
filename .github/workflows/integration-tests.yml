@@ -74,10 +74,9 @@ jobs:
 
           TAG_INPUT=${TAG_INPUT:-"@regression"}
           ENV_NAME=${ENV_NAME:-"dev"}
-
           JUNIT_TAG="${TAG_INPUT//@/}"
 
-          echo "Running tests with Tags: $TAG_INPUT | Env: $ENV_NAME"
+          echo "Running API tests with Tags: $TAG_INPUT | Env: $ENV_NAME"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
@@ -91,6 +90,23 @@ jobs:
                 -Dmaven.test.failure.ignore=true \
                 -Dcucumber.features=src/test/resources/features
             "
+
+      - name: Add Allure environment and executor metadata
+        if: always()
+        run: |
+          mkdir -p api-tests/target/allure-results
+
+          # Environment metadata
+          echo "Environment=${{ github.event.inputs.environment || 'dev' }}" > api-tests/target/allure-results/environment.properties
+          echo "TestType=API" >> api-tests/target/allure-results/environment.properties
+          echo "RunID=${GITHUB_RUN_ID}" >> api-tests/target/allure-results/environment.properties
+
+          # Executor metadata
+          echo "name=GitHub Actions" > api-tests/target/allure-results/executor.properties
+          echo "type=CI" >> api-tests/target/allure-results/executor.properties
+          echo "url=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> api-tests/target/allure-results/executor.properties
+          echo "buildOrder=${GITHUB_RUN_NUMBER}" >> api-tests/target/allure-results/executor.properties
+          echo "reportUrl=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY}/" >> api-tests/target/allure-results/executor.properties
 
       - name: Upload Allure JSON results
         uses: actions/upload-artifact@v4
