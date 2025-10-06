@@ -2,7 +2,7 @@ name: Scheduled Test Runner
 
 on:
   schedule:
-    - cron: "*/3 * * * *" # every 3 minutes for testing
+    - cron: "*/5 * * * *" # Changed to every 5 minutes (minimum reliable interval)
   workflow_dispatch: # optional manual trigger
 
 jobs:
@@ -13,7 +13,7 @@ jobs:
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: run-integration-tests
+          event-type: trigger_api_tests
           client-payload: '{"environment":"dev","cucumber_tags":"@regression"}'
 
   trigger-e2e-tests:
@@ -23,5 +23,5 @@ jobs:
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          event-type: run-e2e-tests
+          event-type: trigger_e2e_tests
           client-payload: '{"environment":"dev","cucumber_tags":"@regression"}'

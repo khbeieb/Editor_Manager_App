@@ -19,6 +19,8 @@ on:
           - dev
           - staging
           - prod
+  repository_dispatch: # ADDED: To be triggered by the scheduled runner
+    types: [ trigger_api_tests ] # Matches the event-type in the scheduled runner
 
 permissions:
   contents: read
