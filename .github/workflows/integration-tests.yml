@@ -19,9 +19,6 @@ on:
           - dev
           - staging
           - prod
-  schedule:
-    # Every day at 00:00 Tunisia time (UTC +1 → cron runs at 23:00 UTC)
-    - cron: "0 23 * * *"
 
 permissions:
   contents: read
