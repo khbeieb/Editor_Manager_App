@@ -101,7 +101,7 @@ jobs:
         run: docker compose -f docker-compose.yml down
 
   allure-report-publish:
-    needs: integration-tests
+    needs: e2e-tests
     runs-on: ubuntu-latest
     environment:
       name: github-pages
