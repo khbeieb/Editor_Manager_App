@@ -19,8 +19,9 @@ on:
           - dev
           - staging
           - prod
+
   schedule:
-    # Every day at 12:00 Tunisia time (UTC +1)
+    # Every day at 12:00 Tunisia time (UTC+1 → 11:00 UTC)
     - cron: "0 11 * * *"
 
 permissions:
@@ -28,7 +29,17 @@ permissions:
   pages: write
   id-token: write
 
-run-name: "E2E Test Run on ENV: ${{ github.event.inputs.environment }} TAG: ${{ github.event.inputs.cucumber_tags }}"
+# Default values for cron runs
+env:
+  DEFAULT_ENV: dev
+  DEFAULT_TAG: "@smoke"
+
+# Dynamic name for better traceability
+run-name: >
+  E2E Test Run on ENV:
+  ${{ github.event.inputs.environment || env.DEFAULT_ENV }}
+  TAG:
+  ${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}
 
 jobs:
   e2e-tests:
@@ -58,17 +69,23 @@ jobs:
 
       - name: Start full stack
         run: |
+          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
+          echo "Starting full stack for env=$ENV_NAME ..."
           docker compose \
-            --env-file ./config/.env.${{ github.event.inputs.environment }} \
+            --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             up -d --build db backend frontend
 
       - name: Run E2E Tests and generate Allure results
         if: always()
         run: |
-          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}"
+          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
+
+          echo "Running Playwright E2E with Tags: $TAG_INPUT | Env: $ENV_NAME"
+
           docker compose \
-            --env-file ./config/.env.${{ github.event.inputs.environment }} \
+            --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             run --rm e2e-tests sh -c "
               cd /e2e-tests && \
@@ -83,7 +100,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-e2e-${{ github.event.inputs.environment }}
+          name: allure-results-e2e-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
           path: e2e-tests/target/allure-results
           retention-days: 7
 
@@ -105,7 +122,7 @@ jobs:
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-e2e-${{ github.event.inputs.environment }}
+          name: allure-results-e2e-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
           path: e2e-tests/target/allure-results
 
       - name: Install Allure CLI

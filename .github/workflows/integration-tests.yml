@@ -19,6 +19,7 @@ on:
           - dev
           - staging
           - prod
+
   schedule:
     # Every day at 00:00 Tunisia time (UTC +1)
     - cron: "0 23 * * *"
@@ -28,7 +29,17 @@ permissions:
   pages: write
   id-token: write
 
-run-name: "Integration Test Run on ENV: ${{ github.event.inputs.environment }} TAG: ${{ github.event.inputs.cucumber_tags }}"
+# Default values used if workflow runs via cron (no inputs available)
+env:
+  DEFAULT_ENV: dev
+  DEFAULT_TAG: "@smoke"
+
+# Dynamic name for manual runs
+run-name: >
+  Integration Test Run on ENV:
+  ${{ github.event.inputs.environment || env.DEFAULT_ENV }}
+  TAG:
+  ${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}
 
 jobs:
   integration-tests:
@@ -58,18 +69,24 @@ jobs:
 
       - name: Start backend stack
         run: |
+          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
+          echo "Starting backend stack for env=$ENV_NAME ..."
           docker compose \
-            --env-file ./config/.env.${{ github.event.inputs.environment }} \
+            --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             up -d --build db backend
 
       - name: Run API Tests and generate Allure results
         if: always()
         run: |
-          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}"
           JUNIT_TAG="${TAG_INPUT//@/}"
+          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
+
+          echo "Running tests with Tags: $TAG_INPUT | Env: $ENV_NAME"
+
           docker compose \
-            --env-file ./config/.env.${{ github.event.inputs.environment }} \
+            --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             run --rm api-tests sh -c "
               cd /api-tests && \
@@ -85,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-api-${{ github.event.inputs.environment }}
+          name: allure-results-api-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
           path: api-tests/target/allure-results
           retention-days: 7
 
@@ -107,7 +124,7 @@ jobs:
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-api-${{ github.event.inputs.environment }}
+          name: allure-results-api-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
           path: api-tests/target/allure-results
 
       - name: Install Allure CLI
