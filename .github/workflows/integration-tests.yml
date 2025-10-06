@@ -5,7 +5,7 @@ on:
     inputs:
       cucumber_tags:
         description: "Select the Cucumber tag suite to run"
-        required: true
+        required: false
         type: choice
         options:
           - "@smoke"
@@ -13,15 +13,14 @@ on:
           - "@integration"
       environment:
         description: "Select the environment configuration"
-        required: true
+        required: false
         type: choice
         options:
           - dev
           - staging
           - prod
-
   schedule:
-    # Every day at 00:00 Tunisia time (UTC +1)
+    # Every day at 00:00 Tunisia time (UTC +1 → cron runs at 23:00 UTC)
     - cron: "0 23 * * *"
 
 permissions:
@@ -29,17 +28,7 @@ permissions:
   pages: write
   id-token: write
 
-# Default values used if workflow runs via cron (no inputs available)
-env:
-  DEFAULT_ENV: dev
-  DEFAULT_TAG: "@smoke"
-
-# Dynamic name for manual runs
-run-name: >
-  Integration Test Run on ENV:
-  ${{ github.event.inputs.environment || env.DEFAULT_ENV }}
-  TAG:
-  ${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}
+run-name: "Integration Test Run on ENV: ${{ github.event.inputs.environment || 'dev' }} TAG: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
 
 jobs:
   integration-tests:
@@ -69,8 +58,9 @@ jobs:
 
       - name: Start backend stack
         run: |
-          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
-          echo "Starting backend stack for env=$ENV_NAME ..."
+          ENV_NAME="${{ github.event.inputs.environment }}"
+          ENV_NAME=${ENV_NAME:-"dev"}
+
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
@@ -79,9 +69,13 @@ jobs:
       - name: Run API Tests and generate Allure results
         if: always()
         run: |
-          TAG_INPUT="${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}"
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
+          ENV_NAME="${{ github.event.inputs.environment }}"
+
+          TAG_INPUT=${TAG_INPUT:-"@regression"}
+          ENV_NAME=${ENV_NAME:-"dev"}
+
           JUNIT_TAG="${TAG_INPUT//@/}"
-          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
 
           echo "Running tests with Tags: $TAG_INPUT | Env: $ENV_NAME"
 
@@ -98,11 +92,11 @@ jobs:
                 -Dcucumber.features=src/test/resources/features
             "
 
-      - name: Upload Allure JSON results (Raw data)
+      - name: Upload Allure JSON results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-api-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
+          name: allure-results-api-${{ github.run_id }}
           path: api-tests/target/allure-results
           retention-days: 7
 
@@ -124,7 +118,7 @@ jobs:
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-api-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
+          name: allure-results-api-${{ github.run_id }}
           path: api-tests/target/allure-results
 
       - name: Install Allure CLI

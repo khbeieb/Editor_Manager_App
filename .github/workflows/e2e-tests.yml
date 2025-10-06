@@ -5,7 +5,7 @@ on:
     inputs:
       cucumber_tags:
         description: "Select the Cucumber tag suite to run"
-        required: true
+        required: false
         type: choice
         options:
           - "@smoke"
@@ -13,15 +13,14 @@ on:
           - "@integration"
       environment:
         description: "Select the environment configuration"
-        required: true
+        required: false
         type: choice
         options:
           - dev
           - staging
           - prod
-
   schedule:
-    # Every day at 12:00 Tunisia time (UTC+1 → 11:00 UTC)
+    # Every day at 12:00 Tunisia time (UTC +1 → cron runs at 11:00 UTC)
     - cron: "0 11 * * *"
 
 permissions:
@@ -29,17 +28,7 @@ permissions:
   pages: write
   id-token: write
 
-# Default values for cron runs
-env:
-  DEFAULT_ENV: dev
-  DEFAULT_TAG: "@smoke"
-
-# Dynamic name for better traceability
-run-name: >
-  E2E Test Run on ENV:
-  ${{ github.event.inputs.environment || env.DEFAULT_ENV }}
-  TAG:
-  ${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}
+run-name: "E2E Test Run on ENV: ${{ github.event.inputs.environment || 'dev' }} TAG: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
 
 jobs:
   e2e-tests:
@@ -69,8 +58,9 @@ jobs:
 
       - name: Start full stack
         run: |
-          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
-          echo "Starting full stack for env=$ENV_NAME ..."
+          ENV_NAME="${{ github.event.inputs.environment }}"
+          ENV_NAME=${ENV_NAME:-"dev"}
+
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
@@ -79,8 +69,11 @@ jobs:
       - name: Run E2E Tests and generate Allure results
         if: always()
         run: |
-          TAG_INPUT="${{ github.event.inputs.cucumber_tags || env.DEFAULT_TAG }}"
-          ENV_NAME="${{ github.event.inputs.environment || env.DEFAULT_ENV }}"
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
+          ENV_NAME="${{ github.event.inputs.environment }}"
+
+          TAG_INPUT=${TAG_INPUT:-"@regression"}
+          ENV_NAME=${ENV_NAME:-"dev"}
 
           echo "Running Playwright E2E with Tags: $TAG_INPUT | Env: $ENV_NAME"
 
@@ -96,11 +89,11 @@ jobs:
                 -Dcucumber.features=src/test/resources/features
             "
 
-      - name: Upload Allure JSON results (Raw data)
+      - name: Upload Allure JSON results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-e2e-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
+          name: allure-results-e2e-${{ github.run_id }}
           path: e2e-tests/target/allure-results
           retention-days: 7
 
@@ -122,7 +115,7 @@ jobs:
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-e2e-${{ github.event.inputs.environment || env.DEFAULT_ENV }}
+          name: allure-results-e2e-${{ github.run_id }}
           path: e2e-tests/target/allure-results
 
       - name: Install Allure CLI
