@@ -114,8 +114,8 @@ jobs:
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-api-${{ github.run_id }}
-          path: api-tests/target/allure-results
+          name: allure-results-e2e-${{ github.run_id }}
+          path: e2e-tests/target/allure-results
 
       - name: Install Allure CLI
         run: |
@@ -127,11 +127,8 @@ jobs:
 
       - name: Generate Allure HTML report
         run: |
-          allure generate api-tests/target/allure-results -o site --clean
+          allure generate e2e-tests/target/allure-results -o site --clean
 
-      # -------------------------------
-      # Upload Allure HTML as artifact
-      # -------------------------------
       - name: Upload Allure HTML report as artifact
         uses: actions/upload-artifact@v4
         with:
