@@ -114,6 +114,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Download existing JSON results artifact
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
@@ -128,18 +129,23 @@ jobs:
           sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
 
+      # Rebuild HTML from the downloaded JSON results
       - name: Generate Allure HTML report
         run: |
           allure generate api-tests/target/allure-results -o site --clean
 
-      # -------------------------------
-      # Upload Allure HTML as artifact
-      # -------------------------------
+      # Zip the HTML site for easy download
+      - name: Prepare Allure HTML report as ZIP
+        run: |
+          cd site
+          zip -r ../allure-html-report.zip .
+          cd ..
+
       - name: Upload Allure HTML report as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: allure-html-report-integration-${{ github.run_id }}
-          path: site
+          name: allure-html-report-api-${{ github.run_id }}
+          path: allure-html-report.zip
           retention-days: 7
 
       - name: Setup Pages

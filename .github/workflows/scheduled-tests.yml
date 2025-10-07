@@ -2,7 +2,7 @@ name: Scheduled Test Runner
 
 on:
   schedule:
-    - cron: "*/5 * * * *" # Every 5 minutes
+    - cron: "0 */3 * * *" # Every 3 Hours
   workflow_dispatch: # optional manual trigger
 
 jobs:
