@@ -19,8 +19,9 @@ on:
           - dev
           - staging
           - prod
-  repository_dispatch: # ADDED: To be triggered by the scheduled runner
-    types: [ trigger_api_tests ] # Matches the event-type in the scheduled runner
+
+  repository_dispatch: # Triggered by Scheduled Runner
+    types: [ trigger_e2e_tests ] # Matches event-type from scheduled workflow
 
 permissions:
   contents: read
@@ -111,6 +112,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Download the uploaded Allure JSON results
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
@@ -125,17 +127,27 @@ jobs:
           sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
 
+      # Rebuild HTML report
       - name: Generate Allure HTML report
         run: |
           allure generate e2e-tests/target/allure-results -o site --clean
 
+      # Zip HTML for download
+      - name: Prepare Allure HTML report as ZIP
+        run: |
+          cd site
+          zip -r ../allure-html-report.zip .
+          cd ..
+
+      # Upload ZIP artifact
       - name: Upload Allure HTML report as artifact
         uses: actions/upload-artifact@v4
         with:
           name: allure-html-report-e2e-${{ github.run_id }}
-          path: site
+          path: allure-html-report.zip
           retention-days: 7
 
+      # Publish to GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
