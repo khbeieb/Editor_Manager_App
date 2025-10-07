@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/Editor_Manager_App.iml" filepath="$PROJECT_DIR$/.idea/Editor_Manager_App.iml" />
+      <module fileurl="file://$PROJECT_DIR$/api-tests/api-tests.iml" filepath="$PROJECT_DIR$/api-tests/api-tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/e2e-selenium/e2e-selenium.iml" filepath="$PROJECT_DIR$/e2e-selenium/e2e-selenium.iml" />
       <module fileurl="file://$PROJECT_DIR$/e2e-tests/e2e-tests.iml" filepath="$PROJECT_DIR$/e2e-tests/e2e-tests.iml" />
     </modules>
   </component>

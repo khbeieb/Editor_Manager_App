@@ -1,13 +1,18 @@
-HELP.md
-backend/target
-.mvn/wrapper/maven-wrapper.jar
+target/
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### Config ###
-config/*
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
 
-### STS ###
+### Eclipse ###
 .apt_generated
 .classpath
 .factorypath
@@ -15,13 +20,6 @@ config/*
 .settings
 .springBeans
 .sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-**/.idea/
 
 ### NetBeans ###
 /nbproject/private/
@@ -36,12 +34,5 @@ build/
 ### VS Code ###
 .vscode/
 
-# E2E test build output
-/e2e-tests/target/
-/e2e-tests/.allure/
-
-# Surefire reports
-/e2e-tests/target/surefire-reports/
-
-# Allure
-**/.allure/
+### Mac OS ###
+.DS_Store

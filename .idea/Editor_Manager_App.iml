@@ -3,10 +3,14 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/e2e-selenium" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/e2e-selenium/src/test/resources" type="java-test-resource" />
       <sourceFolder url="file://$MODULE_DIR$/e2e-tests/src/main/java" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/.idea/dictionaries" />
       <excludeFolder url="file://$MODULE_DIR$/.idea/inspectionProfiles" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/.vscode" />
+      <excludeFolder url="file://$MODULE_DIR$/e2e-selenium/src/test" />
+      <excludeFolder url="file://$MODULE_DIR$/e2e-selenium/src/test/java/org/mobelite/e2eselenium" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

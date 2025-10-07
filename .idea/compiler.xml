@@ -9,6 +9,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="e2e-tests" />
         <module name="api-tests" />
+        <module name="e2e-selenium" />
       </profile>
       <profile name="Annotation profile for Editor Manager" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
