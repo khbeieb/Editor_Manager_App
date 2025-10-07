@@ -2,8 +2,21 @@ name: Scheduled Test Runner
 
 on:
   schedule:
-    - cron: "0 */3 * * *" # Every 3 Hours
-  workflow_dispatch: # optional manual trigger
+    - cron: "0 */3 * * *" # Every 3 hours
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment to test"
+        required: false
+        default: "dev"
+      cucumber_tags:
+        description: "Cucumber tag suite to run"
+        required: false
+        default: "@regression"
+      branch:
+        description: "Target branch to trigger workflows on"
+        required: false
+        default: "main"
 
 jobs:
   trigger-integration-tests:
@@ -13,8 +26,14 @@ jobs:
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
           event-type: trigger_api_tests
-          client-payload: '{"environment":"dev","cucumber_tags":"@regression"}'
+          client-payload: >-
+            {
+              "environment": "${{ github.event.inputs.environment || 'dev' }}",
+              "cucumber_tags": "${{ github.event.inputs.cucumber_tags || '@regression' }}",
+              "ref": "${{ github.event.inputs.branch || 'main' }}"
+            }
 
   trigger-e2e-tests:
     runs-on: ubuntu-latest
@@ -23,5 +42,11 @@ jobs:
         uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
           event-type: trigger_e2e_tests
-          client-payload: '{"environment":"dev","cucumber_tags":"@regression"}'
+          client-payload: >-
+            {
+              "environment": "${{ github.event.inputs.environment || 'dev' }}",
+              "cucumber_tags": "${{ github.event.inputs.cucumber_tags || '@regression' }}",
+              "ref": "${{ github.event.inputs.branch || 'main' }}"
+            }
