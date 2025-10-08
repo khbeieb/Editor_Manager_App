@@ -7,7 +7,7 @@ backend/target
 ### Config ###
 config/*
 
-### STS ###
+### STS (Spring Tool Suite) ###
 .apt_generated
 .classpath
 .factorypath
@@ -17,11 +17,10 @@ config/*
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
-**/.idea/
 
 ### NetBeans ###
 /nbproject/private/
@@ -36,12 +35,55 @@ build/
 ### VS Code ###
 .vscode/
 
-# E2E test build output
+### OS Files ###
+.DS_Store
+Thumbs.db
+
+### Logs ###
+logs/
+*.log
+
+### Node / Frontend ###
+node_modules/
+dist/
+
+### E2E (Playwright) ###
 /e2e-tests/target/
 /e2e-tests/.allure/
-
-# Surefire reports
 /e2e-tests/target/surefire-reports/
+/e2e-tests/allure-results/
+/e2e-tests/allure-report/
+/e2e-tests/out/
 
-# Allure
+### E2E (Selenium) ###
+/e2e-selenium/target/
+/e2e-selenium/.allure/
+/e2e-selenium/target/surefire-reports/
+/e2e-selenium/allure-results/
+/e2e-selenium/allure-report/
+/e2e-selenium/out/
+/e2e-selenium/test-output/
+
+### Maven ###
+target/
+
+### Build Cache ###
+.cache/
+tmp/
+temp/
+
+### Allure (Global) ###
+**/allure-results/
+**/allure-report/
 **/.allure/
+
+### Test Artifacts ###
+screenshots/
+reports/
+test-output/
+surefire-reports/
+
+### Environment / Credentials ###
+.env
+.env.local
+.env.*.local
