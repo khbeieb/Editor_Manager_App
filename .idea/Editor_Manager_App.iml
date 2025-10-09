@@ -11,6 +11,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.idea/inspectionProfiles" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/.vscode" />
       <excludeFolder url="file://$MODULE_DIR$/e2e-selenium/src/test/java/org/mobelite/e2eselenium" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

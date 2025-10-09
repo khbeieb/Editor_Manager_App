@@ -13,6 +13,12 @@ services:
       MYSQL_DB: ${MYSQL_DB}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
 
   db:
@@ -73,6 +79,37 @@ services:
       - ./api-tests:/api-tests
       - ~/.m2:/root/.m2
     working_dir: /api-tests
+
+  e2e-selenium:
+    build:
+      context: ./e2e-selenium
+      dockerfile: Dockerfile
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+      db:
+        condition: service_started
+      selenium:
+        condition: service_started
+    environment:
+      BASE_URL: "http://frontend:4200"
+      API_BASE_URL: "http://backend:8080"
+    command: mvn clean test -Dmaven.test.failure.ignore=true
+    shm_size: 2g
+    volumes:
+      - ./e2e-selenium:/e2e-selenium
+      - ~/.m2:/root/.m2
+    working_dir: /e2e-selenium
+
+  selenium:
+    image: seleniarm/standalone-chromium:latest  # ✅ ARM64 compatible image
+    container_name: selenium
+    shm_size: 2g
+    ports:
+      - "4444:4444"
+    restart: unless-stopped
 
 volumes:
   db_data:

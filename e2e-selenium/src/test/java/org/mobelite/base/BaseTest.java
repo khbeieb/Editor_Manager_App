@@ -6,26 +6,29 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.testng.ITestResult;
 import org.testng.annotations.*;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Duration;
 
 public class BaseTest {
 
   protected WebDriver driver;
-  protected static final String BASE_URL = "http://localhost:4200";
+  protected static final String BASE_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
 
   @BeforeMethod(alwaysRun = true)
-  public void setUp() {
+  public void setUp() throws MalformedURLException {
     ChromeOptions options = new ChromeOptions();
-    options.addArguments("--headless=new"); // Use "--headless=new" for latest Chrome versions
-    options.addArguments("--disable-gpu");  // Recommended for headless
-    options.addArguments("--window-size=1920,1080"); // Optional: set resolution
-    options.addArguments("--no-sandbox");   // Optional: useful in CI environments
-    options.addArguments("--disable-dev-shm-usage"); // Optional: avoid limited resource issues
+    options.addArguments("--headless"); // ✅ safer for Docker
+    options.addArguments("--no-sandbox");
+    options.addArguments("--disable-dev-shm-usage");
+    options.addArguments("--disable-gpu");
+    options.addArguments("--window-size=1920,1080");
 
-    driver = new ChromeDriver(options);
+    driver = new RemoteWebDriver(new URL("http://selenium:4444"), options);
     driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
   }
 

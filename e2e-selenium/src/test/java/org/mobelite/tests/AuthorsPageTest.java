@@ -7,6 +7,8 @@ import org.mobelite.utils.TestDataHelper;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
+import java.net.MalformedURLException;
+
 @Epic("Authors Page")
 @Feature("Author Management")
 public class AuthorsPageTest extends BaseTest {
@@ -14,7 +16,7 @@ public class AuthorsPageTest extends BaseTest {
   private String createdAuthorId;
 
   @BeforeMethod
-  public void setUpPage() {
+  public void setUpPage() throws Exception {
     super.setUp();
     navigateTo("/authors");
     authorsPage = new AuthorsListPage(driver);

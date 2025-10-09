@@ -1,5 +1,6 @@
 # Use Node.js base image
 FROM node:20-alpine
+RUN apk add --no-cache curl
 
 # Set working directory inside container
 WORKDIR /app
