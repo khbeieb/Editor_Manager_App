@@ -1,0 +1,143 @@
+name: Selenium E2E Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select the environment configuration"
+        required: false
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+  repository_dispatch:
+    types: [ trigger_selenium_e2e_tests ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+run-name: "Selenium E2E Test Run on ENV: ${{ github.event.inputs.environment || 'dev' }}"
+
+jobs:
+  selenium-e2e-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 and Cache Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Start full stack
+        run: |
+          ENV_NAME="${{ github.event.inputs.environment }}"
+          ENV_NAME=${ENV_NAME:-"dev"}
+
+          docker compose \
+            --env-file ./config/.env.${ENV_NAME} \
+            -f docker-compose.yml \
+            up -d --build db backend frontend selenium
+
+      - name: Run Selenium E2E Tests
+        if: always()
+        run: |
+          ENV_NAME="${{ github.event.inputs.environment }}"
+          ENV_NAME=${ENV_NAME:-"dev"}
+
+          echo "Running Selenium E2E Tests | Env: $ENV_NAME"
+
+          docker compose \
+            --env-file ./config/.env.${ENV_NAME} \
+            -f docker-compose.yml \
+            run --rm e2e-selenium sh -c "
+              cd /e2e-selenium && \
+              mvn clean test \
+                -Dallure.results.directory=target/allure-results \
+                -Dmaven.test.failure.ignore=true
+            "
+
+      - name: Upload Allure JSON results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-selenium-${{ github.run_id }}
+          path: e2e-selenium/target/allure-results
+          retention-days: 7
+
+      - name: Stop stack
+        if: always()
+        run: docker compose -f docker-compose.yml down
+
+  allure-report-publish:
+    needs: selenium-e2e-tests
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Allure JSON results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-selenium-${{ github.run_id }}
+          path: e2e-selenium/target/allure-results
+
+      - name: Install Allure CLI
+        run: |
+          ALLURE_VERSION="2.27.0"
+          curl -L -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
+          unzip allure.zip -d /opt
+          sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+
+      - name: Generate Allure HTML report
+        run: |
+          allure generate e2e-selenium/target/allure-results -o site --clean
+
+      - name: Prepare Allure HTML report as ZIP
+        run: |
+          cd site
+          zip -r ../allure-html-report.zip .
+          cd ..
+
+      - name: Upload Allure HTML report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-html-report-selenium-${{ github.run_id }}
+          path: allure-html-report.zip
+          retention-days: 7
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
