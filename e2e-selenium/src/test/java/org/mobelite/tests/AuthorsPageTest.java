@@ -8,12 +8,15 @@ import org.testng.Assert;
 import org.testng.annotations.*;
 
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Epic("Authors Page")
 @Feature("Author Management")
 public class AuthorsPageTest extends BaseTest {
   private AuthorsListPage authorsPage;
-  private String createdAuthorId;
+  private final List<String> createdAuthorIds = new ArrayList<>();
+
 
   @BeforeMethod
   public void setUpPage() throws Exception {
@@ -24,10 +27,10 @@ public class AuthorsPageTest extends BaseTest {
 
   @AfterMethod(alwaysRun = true)
   public void cleanUp() {
-    if (createdAuthorId != null) {
-      TestDataHelper.deleteAuthor(createdAuthorId);
-      createdAuthorId = null;
+    for (String id : createdAuthorIds) {
+      TestDataHelper.deleteAuthor(id);
     }
+    createdAuthorIds.clear();
   }
 
   @Test(priority = 1, description = "Should display authors page title")
@@ -46,7 +49,7 @@ public class AuthorsPageTest extends BaseTest {
   @Test(priority = 3, description = "Should create and display new author in table")
   @Story("CRUD Operations")
   public void shouldCreateAndDisplayAuthorInTable() {
-    createdAuthorId = TestDataHelper.createAuthor("Test Author", "French");
+    createdAuthorIds.add(TestDataHelper.createAuthor("Test Author", "French"));
     authorsPage.clickRefresh();
     Assert.assertEquals(authorsPage.getFirstRowName(), "Test Author");
     Assert.assertEquals(authorsPage.getFirstRowNationality(), "French");
@@ -55,7 +58,7 @@ public class AuthorsPageTest extends BaseTest {
   @Test(priority = 4, description = "Should filter authors by name")
   @Story("Filtering")
   public void shouldFilterAuthorsByName() {
-    createdAuthorId = TestDataHelper.createAuthor("Unique Author", "German");
+    createdAuthorIds.add(TestDataHelper.createAuthor("Unique Author", "German"));
     authorsPage.clickRefresh();
     authorsPage.searchAuthor("Unique");
     Assert.assertEquals(authorsPage.getFirstRowName(), "Unique Author");
@@ -64,8 +67,8 @@ public class AuthorsPageTest extends BaseTest {
   @Test(priority = 5, description = "Should sort authors")
   @Story("Sorting")
   public void shouldSortAuthors() {
-    TestDataHelper.createAuthor("AAA Author", "French");
-    createdAuthorId = TestDataHelper.createAuthor("ZZZ Author", "French");
+    createdAuthorIds.add(TestDataHelper.createAuthor("AAA Author", "French"));
+    createdAuthorIds.add(TestDataHelper.createAuthor("ZZZ Author", "French"));
     authorsPage.clickRefresh();
     authorsPage.selectSortBy("Name");
     authorsPage.selectSortOrder("Ascending");

@@ -10,6 +10,7 @@ DOCKER_COMPOSE_OVERRIDE="./docker-compose.$ENV.yml"
 ALLURE_RESULTS_DIR="./e2e-selenium/target/allure-results"
 ALLURE_REPORT_DIR="./e2e-selenium/target/allure-report"
 PORT=8084
+MAX_RETRIES=3
 
 echo "🧪 Running Selenium E2E tests for environment: $ENV"
 
@@ -34,41 +35,51 @@ rm -rf "$ALLURE_RESULTS_DIR" "$ALLURE_REPORT_DIR"
 mkdir -p "$ALLURE_RESULTS_DIR" "$ALLURE_REPORT_DIR"
 
 # ---------------------------
-# Step 2: Start backend, frontend, db if not running
+# Step 2: Start required services
 # ---------------------------
-echo "🚀 Starting environment services if not already running..."
+echo "🚀 Starting required services..."
+docker compose --env-file "$CONFIG_FILE" $COMPOSE_FILES up -d db backend frontend selenium
 
-services=("backend" "frontend" "db")
-for service in "${services[@]}"; do
-  if ! docker compose --env-file "$CONFIG_FILE" $COMPOSE_FILES ps -q "$service" >/dev/null 2>&1; then
-    echo "   🔹 Starting $service..."
-    docker compose --env-file "$CONFIG_FILE" $COMPOSE_FILES up -d "$service"
+# ---------------------------
+# Step 3: Wait a few seconds for DB and Selenium to start
+# ---------------------------
+echo "⏳ Waiting 10 seconds for services to initialize..."
+sleep 10
+
+# ---------------------------
+# Step 4: Build e2e-selenium test container
+# ---------------------------
+echo "🔨 Building e2e-selenium test container..."
+docker compose --env-file "$CONFIG_FILE" $COMPOSE_FILES build e2e-selenium
+
+# ---------------------------
+# Step 5: Run tests with retries
+# ---------------------------
+TEST_PASSED=false
+
+for attempt in $(seq 1 $MAX_RETRIES); do
+  echo ""
+  echo "🧪 Running Selenium E2E tests (attempt ${attempt}/${MAX_RETRIES})..."
+
+  if docker compose --env-file "$CONFIG_FILE" $COMPOSE_FILES run --rm e2e-selenium mvn clean test -Dmaven.test.failure.ignore=true; then
+    echo "✅ Selenium E2E tests completed successfully!"
+    TEST_PASSED=true
+    break
   else
-    echo "   ✅ $service already running"
+    echo "⚠️ Test run failed (attempt ${attempt}/${MAX_RETRIES})"
+    if [ $attempt -lt $MAX_RETRIES ]; then
+      echo "🔄 Retrying in 5 seconds..."
+      sleep 5
+    fi
   fi
 done
 
-echo "✅ Backend, frontend, and DB are running!"
-
 # ---------------------------
-# Step 3: Run Selenium E2E tests
+# Step 6: Generate Allure report
 # ---------------------------
-echo "🧪 Running Selenium E2E tests..."
-docker compose --env-file "$CONFIG_FILE" $COMPOSE_FILES run --rm e2e-selenium \
-  mvn clean test -Dmaven.test.failure.ignore=true
-
-# ---------------------------
-# Step 4: Generate Allure report
-# ---------------------------
-if [ -d "$ALLURE_RESULTS_DIR" ]; then
+if [ -d "$ALLURE_RESULTS_DIR" ] && [ "$(ls -A $ALLURE_RESULTS_DIR 2>/dev/null)" ]; then
+  echo ""
   echo "📊 Generating Allure report..."
-
-  # Remove existing Allure container if it exists
-  if docker ps -a --format '{{.Names}}' | grep -q "^allure-server-selenium$"; then
-      echo "🛑 Removing existing Allure container..."
-      docker rm -f allure-server-selenium
-  fi
-
   docker run --rm \
     -v "$(pwd)/$ALLURE_RESULTS_DIR:/app/allure-results" \
     -v "$(pwd)/$ALLURE_REPORT_DIR:/app/allure-report" \
@@ -76,24 +87,48 @@ if [ -d "$ALLURE_RESULTS_DIR" ]; then
     allure generate /app/allure-results -o /app/allure-report --clean
 
   echo "✅ Allure report generated at: $ALLURE_REPORT_DIR"
+
+  # ---------------------------
+  # Step 7: Stop existing Allure server if any and start new one
+  # ---------------------------
+  if docker ps -a | grep -q "allure-server-selenium"; then
+    echo "🛑 Stopping and removing existing Allure server..."
+    docker stop allure-server-selenium >/dev/null 2>&1
+    docker rm allure-server-selenium >/dev/null 2>&1
+  fi
+
+  echo "🚀 Starting Allure Docker Service..."
+  docker run -d \
+    --name allure-server-selenium \
+    -p $PORT:4040 \
+    -v "$(pwd)/$ALLURE_RESULTS_DIR:/app/allure-results" \
+    frankescobar/allure-docker-service:latest >/dev/null 2>&1
+
+  echo "⏳ Waiting for Allure service to start..."
+  sleep 5
+
+  echo "📄 Allure report ready at: http://localhost:$PORT"
+
+  # Auto-open in browser
+  if command -v open &> /dev/null; then
+    open "http://localhost:$PORT"
+  elif command -v xdg-open &> /dev/null; then
+    xdg-open "http://localhost:$PORT"
+  fi
+
+  echo "💡 To stop the Allure server: docker stop allure-server-selenium"
+else
+  echo "⚠️ No Allure results found, skipping report generation"
 fi
 
 # ---------------------------
-# Step 5: Start Allure report viewer
+# Step 8: Finish
 # ---------------------------
-docker run -d \
-  --name allure-server-selenium \
-  -p $PORT:4040 \
-  -v "$(pwd)/$ALLURE_RESULTS_DIR:/app/allure-results" \
-  frankescobar/allure-docker-service:latest
-
-echo "📄 Allure report available at: http://localhost:$PORT"
-
-# Open automatically if possible
-if command -v open &> /dev/null; then
-  open "http://localhost:$PORT"
-elif command -v xdg-open &> /dev/null; then
-  xdg-open "http://localhost:$PORT"
+echo ""
+if [ "$TEST_PASSED" = true ]; then
+  echo "🎉 Selenium E2E test script finished successfully!"
+  exit 0
+else
+  echo "❌ Selenium E2E test script finished with failures!"
+  exit 1
 fi
-
-echo "🎉 Selenium E2E tests completed successfully!"

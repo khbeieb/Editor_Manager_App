@@ -10,7 +10,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class TestDataHelper {
-  private static final String BASE_API_URL = "http://localhost:8080";
+  private static final String BASE_API_URL = "http://backend:8080";
   private static final HttpClient client = HttpClient.newHttpClient();
 
   public static String createAuthor(String name, String nationality) {
