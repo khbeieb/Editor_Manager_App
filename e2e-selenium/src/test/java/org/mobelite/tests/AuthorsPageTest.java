@@ -7,7 +7,6 @@ import org.mobelite.utils.TestDataHelper;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 

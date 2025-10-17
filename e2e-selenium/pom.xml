@@ -15,6 +15,9 @@
         <maven.compiler.source>17</maven.compiler.source>
         <aspectj.version>1.9.22.1</aspectj.version>
         <allure.version>2.29.0</allure.version>
+        <aspectj.weaver.path>
+          ${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar
+        </aspectj.weaver.path>
     </properties>
 
     <dependencies>
@@ -96,7 +99,7 @@
                 <configuration>
                     <testFailureIgnore>true</testFailureIgnore>
                     <argLine>
-                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
+                      -javaagent:${aspectj.weaver.path}
                     </argLine>
                     <systemProperties>
                         <property>
