@@ -29,12 +29,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: ${{ fromJson('["chrome", "firefox"]') }}
-        include:
-          - browser: chrome
-          - browser: firefox
+        browser: [chrome, firefox]
       max-parallel: 2
-    if: github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser
 
     steps:
       - name: Checkout repository
@@ -62,6 +58,12 @@ jobs:
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
           BROWSER="${{ matrix.browser }}"
+          INPUT_BROWSER="${{ github.event.inputs.browser || 'chrome' }}"
+
+          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$BROWSER" ]; then
+            echo "⏭️ Skipping setup for $BROWSER because input=$INPUT_BROWSER"
+            exit 0
+          fi
 
           echo "🚀 Starting stack for $BROWSER | Env: $ENV_NAME"
 
@@ -84,6 +86,12 @@ jobs:
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
           BROWSER="${{ matrix.browser }}"
+          INPUT_BROWSER="${{ github.event.inputs.browser || 'chrome' }}"
+
+          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$BROWSER" ]; then
+            echo "⏭️ Skipping tests for $BROWSER because input=$INPUT_BROWSER"
+            exit 0
+          fi
 
           echo "🧪 Running tests on $BROWSER"
 
@@ -123,7 +131,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Allure JSON results (both browsers)
+      - name: Download Allure JSON results (all browsers)
         uses: actions/download-artifact@v4
         with:
           path: allure-results
