@@ -4,38 +4,43 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Select the environment configuration"
+        description: "Select environment configuration"
         required: false
         type: choice
-        options:
-          - dev
-          - staging
-          - prod
+        options: [dev, staging, prod]
+        default: dev
       browser:
         description: "Select browser (or all)"
+        required: false
         type: choice
-        options: [ chrome, firefox, all ]
+        options: [chrome, firefox, all]
         default: chrome
-
-  repository_dispatch:
-    types: [ trigger_selenium_e2e_tests ]
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-run-name: "Selenium E2E Test Run on ENV: ${{ github.event.inputs.environment || 'dev' }}"
+run-name: "Selenium E2E on ${{ github.event.inputs.environment || 'dev' }} - Browser: ${{ github.event.inputs.browser || 'chrome' }}"
 
 jobs:
   selenium-e2e-tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: ${{ fromJson('["chrome", "firefox"]') }}
+        include:
+          - browser: chrome
+          - browser: firefox
+      max-parallel: 2
+    if: github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17 and Cache Maven
+      - name: Set up JDK 17 with Maven cache
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -53,45 +58,59 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Start full stack
+      - name: Start Selenium Grid + App Stack
         run: |
-          ENV_NAME="${{ github.event.inputs.environment }}"
-          ENV_NAME=${ENV_NAME:-"dev"}
+          ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
+          BROWSER="${{ matrix.browser }}"
+
+          echo "🚀 Starting stack for $BROWSER | Env: $ENV_NAME"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
-            up -d --build db backend frontend selenium
+            up -d --build db backend frontend selenium-hub selenium-${BROWSER}
 
-      - name: Run Selenium E2E Tests
-        if: always()
+          echo "🕒 Waiting for frontend to be ready..."
+          for i in {1..20}; do
+            if curl -s http://localhost:4200 > /dev/null; then
+              echo "✅ Frontend is up!"
+              break
+            fi
+            echo "⏳ Waiting for frontend... ($i/20)"
+            sleep 5
+          done
+
+      - name: Run E2E Tests on ${{ matrix.browser }}
         run: |
-          ENV_NAME="${{ github.event.inputs.environment }}"
-          ENV_NAME=${ENV_NAME:-"dev"}
+          ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
+          BROWSER="${{ matrix.browser }}"
 
-          echo "Running Selenium E2E Tests | Env: $ENV_NAME"
+          echo "🧪 Running tests on $BROWSER"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
-            run --rm e2e-selenium sh -c "
+            run --rm \
+            -e TEST_BROWSER=${BROWSER} \
+            e2e-selenium sh -c "
               cd /e2e-selenium && \
               mvn clean test \
+                -Dtest.browser=${BROWSER} \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true
             "
 
-      - name: Upload Allure JSON results
+      - name: Upload Allure results (${{ matrix.browser }})
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-selenium-${{ github.run_id }}
+          name: allure-results-${{ matrix.browser }}-${{ github.run_id }}
           path: e2e-selenium/target/allure-results
           retention-days: 7
 
-      - name: Stop stack
+      - name: Stop Docker services
         if: always()
-        run: docker compose -f docker-compose.yml down
+        run: docker compose -f docker-compose.yml down -v
 
   allure-report-publish:
     needs: selenium-e2e-tests
@@ -104,11 +123,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Allure JSON results
+      - name: Download Allure JSON results (both browsers)
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-selenium-${{ github.run_id }}
-          path: e2e-selenium/target/allure-results
+          path: allure-results
+        continue-on-error: true
+
+      - name: Merge Allure results
+        run: |
+          mkdir -p e2e-selenium/target/allure-results
+          cp -r allure-results/*/* e2e-selenium/target/allure-results || true
 
       - name: Install Allure CLI
         run: |
@@ -122,20 +146,14 @@ jobs:
         run: |
           allure generate e2e-selenium/target/allure-results -o site --clean
 
-      - name: Prepare Allure HTML report as ZIP
-        run: |
-          cd site
-          zip -r ../allure-html-report.zip .
-          cd ..
-
-      - name: Upload Allure HTML report as artifact
+      - name: Upload HTML report as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: allure-html-report-selenium-${{ github.run_id }}
-          path: allure-html-report.zip
+          name: allure-html-report-${{ github.run_id }}
+          path: site
           retention-days: 7
 
-      - name: Setup Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
