@@ -14,14 +14,14 @@ on:
         required: false
         type: choice
         options: [chrome, firefox, all]
-        default: chrome
+        default: all
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-run-name: "Selenium E2E on ${{ github.event.inputs.environment || 'dev' }} - Browser: ${{ github.event.inputs.browser || 'chrome' }}"
+run-name: "Selenium E2E on ${{ github.event.inputs.environment || 'dev' }} - Browser: ${{ github.event.inputs.browser || 'all' }}"
 
 jobs:
   selenium-e2e-tests:
@@ -57,20 +57,20 @@ jobs:
       - name: Start Selenium Grid + App Stack
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
-          BROWSER="${{ matrix.browser }}"
-          INPUT_BROWSER="${{ github.event.inputs.browser || 'chrome' }}"
+          MATRIX_BROWSER="${{ matrix.browser }}"
+          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
 
-          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$BROWSER" ]; then
-            echo "⏭️ Skipping setup for $BROWSER because input=$INPUT_BROWSER"
+          # Skip browser if user selected only one
+          if [[ "$INPUT_BROWSER" != "all" && "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]]; then
+            echo "⏭️ Skipping $MATRIX_BROWSER"
             exit 0
           fi
 
-          echo "🚀 Starting stack for $BROWSER | Env: $ENV_NAME"
-
+          echo "🚀 Starting stack for $MATRIX_BROWSER | Env: $ENV_NAME"
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
-            up -d --build db backend frontend selenium-hub selenium-${BROWSER}
+            up -d --build db backend frontend selenium-hub selenium-${MATRIX_BROWSER}
 
           echo "🕒 Waiting for frontend to be ready..."
           for i in {1..20}; do
@@ -78,32 +78,31 @@ jobs:
               echo "✅ Frontend is up!"
               break
             fi
-            echo "⏳ Waiting for frontend... ($i/20)"
+            echo "⏳ Waiting for frontend ($i/20)..."
             sleep 5
           done
 
       - name: Run E2E Tests on ${{ matrix.browser }}
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
-          BROWSER="${{ matrix.browser }}"
-          INPUT_BROWSER="${{ github.event.inputs.browser || 'chrome' }}"
+          MATRIX_BROWSER="${{ matrix.browser }}"
+          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
 
-          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$BROWSER" ]; then
-            echo "⏭️ Skipping tests for $BROWSER because input=$INPUT_BROWSER"
+          if [[ "$INPUT_BROWSER" != "all" && "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]]; then
+            echo "⏭️ Skipping $MATRIX_BROWSER tests"
             exit 0
           fi
 
-          echo "🧪 Running tests on $BROWSER"
+          echo "🧪 Running tests on $MATRIX_BROWSER"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             run --rm \
-            -e TEST_BROWSER=${BROWSER} \
+            -e TEST_BROWSER=${MATRIX_BROWSER} \
             e2e-selenium sh -c "
               cd /e2e-selenium && \
-              mvn clean test \
-                -Dtest.browser=${BROWSER} \
+              mvn clean test -Dbrowser=${MATRIX_BROWSER} \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true
             "
