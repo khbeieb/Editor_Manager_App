@@ -22,7 +22,7 @@ public class BaseTest {
   // Base URL for your frontend
   protected static final String BASE_URL = System.getenv().getOrDefault(
     "E2E_BASE_URL_UI", "http://frontend:4200");
-   //protected static final String BASE_URL = "http://localhost:4200";
+   // protected static final String BASE_URL = "http://localhost:4200";
   // Remote Selenium URL (inside Docker network)
   private static final String SELENIUM_URL = System.getenv("SELENIUM_REMOTE_URL");
 

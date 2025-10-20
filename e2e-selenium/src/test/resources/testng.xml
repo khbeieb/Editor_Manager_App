@@ -3,6 +3,7 @@
   <test name="Authors Tests">
     <classes>
       <class name="org.mobelite.tests.AuthorsPageTest"/>
+      <class name="org.mobelite.tests.AuthorFormTest"/>
     </classes>
   </test>
 </suite>
