@@ -16,7 +16,7 @@ public class AuthorFormTest extends BaseTest {
 
   @BeforeMethod
   public void setUpForm() throws Exception {
-    super.setUp();
+    // super.setUp();
     navigateTo("/authors/new");
     formPage = new AuthorFormPage(driver);
     formPage.waitForForm();

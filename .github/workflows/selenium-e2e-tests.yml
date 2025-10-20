@@ -11,6 +11,11 @@ on:
           - dev
           - staging
           - prod
+      browser:
+        description: "Select browser (or all)"
+        type: choice
+        options: [ chrome, firefox, all ]
+        default: chrome
 
   repository_dispatch:
     types: [ trigger_selenium_e2e_tests ]

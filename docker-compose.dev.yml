@@ -1,3 +1,5 @@
+version: '3.9'
+
 services:
   backend:
     build:
@@ -53,26 +55,45 @@ services:
       - app-network
     restart: unless-stopped
 
-  selenium:
-    image: seleniarm/standalone-chromium:latest
-    container_name: selenium
-    shm_size: 2g
+  selenium-hub:
+    image: seleniarm/hub:latest
+    container_name: selenium-hub
     ports:
       - "4444:4444"
-      - "7900:7900"
-    environment:
-      - SE_NODE_MAX_SESSIONS=5
-      - SE_NODE_SESSION_TIMEOUT=300
-      - SE_SESSION_REQUEST_TIMEOUT=300
-      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4444/wd/hub/status || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:4444/status || exit 1" ]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 15s
+      retries: 6
+      start_period: 10s
+
+  selenium-chrome:
+    image: seleniarm/node-chromium:latest
+    container_name: selenium-chrome
+    shm_size: 2g
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    networks:
+      - app-network
+
+  selenium-firefox:
+    image: seleniarm/node-firefox:latest
+    container_name: selenium-firefox
+    shm_size: 2g
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    networks:
+      - app-network
 
   e2e-selenium:
     build:
@@ -83,12 +104,12 @@ services:
         condition: service_started
       frontend:
         condition: service_started
-      selenium:
+      selenium-hub:
         condition: service_healthy
     environment:
       E2E_BASE_URL_UI: "http://frontend:4200"
       E2E_BASE_URL_API: "http://backend:8080"
-      SELENIUM_REMOTE_URL: "http://selenium:4444/wd/hub"
+      SELENIUM_REMOTE_URL: "http://selenium-hub:4444/wd/hub"
     command: mvn clean test
     shm_size: 2g
     volumes:

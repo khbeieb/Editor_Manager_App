@@ -19,7 +19,7 @@ public class AuthorsPageTest extends BaseTest {
 
   @BeforeMethod
   public void setUpPage() throws Exception {
-    super.setUp();
+    // super.setUp();
     navigateTo("/authors");
     authorsPage = new AuthorsListPage(driver);
   }
