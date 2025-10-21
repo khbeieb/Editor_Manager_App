@@ -40,7 +40,7 @@ permissions:
   pages: write
   id-token: write
 
-run-name: "Playwright E2E (Java) on ENV: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
+run-name: "Playwright E2E (Java) on ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
 
 jobs:
   playwright-e2e-tests:
@@ -50,6 +50,8 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
       max-parallel: 3
+    # ✅ Skip entire job if browser does not match selection (unless 'all')
+    if: ${{ github.event.inputs.browser == 'all' || matrix.browser == github.event.inputs.browser }}
 
     steps:
       - name: Checkout repository
@@ -96,14 +98,7 @@ jobs:
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
           TAG_INPUT="${{ github.event.inputs.cucumber_tags || '@regression' }}"
-          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
           MATRIX_BROWSER="${{ matrix.browser }}"
-
-          # Skip matrix jobs that do not match the selected browser (unless 'all')
-          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]; then
-            echo "⏭️ Skipping $MATRIX_BROWSER (selected: $INPUT_BROWSER)"
-            exit 0
-          fi
 
           echo "🧪 Running Playwright E2E (Java) | Env: $ENV_NAME | Browser: $MATRIX_BROWSER | Tags: $TAG_INPUT"
 
