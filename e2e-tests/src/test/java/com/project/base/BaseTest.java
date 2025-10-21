@@ -6,63 +6,52 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 import com.project.config.PlaywrightFactory;
 import io.qameta.allure.Allure;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
 
 public abstract class BaseTest {
 
-  protected static BrowserContext context;
-  protected static Page page;
-  protected static APIRequestContext api;
+  protected BrowserContext context;
+  protected Page page;
+  protected APIRequestContext api;
 
-  // Base URLs for UI and API
-    protected static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
+  protected static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
+  protected static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
 
-    protected static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
-   //TODO: Remove after testing
-//  protected static final String BASE_UI_URL = "localhost:4200";
-//   protected static final String BASE_API_URL = "localhost:8080";
-  @BeforeAll
-  static void globalSetup() {
-    // Initialize browser via factory
-    PlaywrightFactory.initBrowser(true); // true = headless
+//  protected static final String BASE_UI_URL = "http://localhost:4200";
+//  protected static final String BASE_API_URL = "http://localhost:8080";
 
-    // Create context & page for UI tests
+  @BeforeEach
+  void setup() {
+    // Read browser from Maven property or default to chromium
+    String browserName = System.getProperty("browser", "chromium");
+
+    // Initialize Playwright & browser (singleton)
+    PlaywrightFactory.initBrowser(browserName, true);
+
+    // Each test gets its own context/page for isolation
     context = PlaywrightFactory.createContext();
     page = context.newPage();
 
-    // Create API request context
+    // API context
     api = PlaywrightFactory.createApiRequestContext(BASE_API_URL);
   }
 
-  @AfterAll
-  static void globalTeardown() {
-    if (context != null) {
-      context.close();
-    }
-    if (api != null) {
-      api.dispose();
-    }
-    PlaywrightFactory.close();
+  @AfterEach
+  void teardown() {
+    if (context != null) context.close();
+    if (api != null) api.dispose();
   }
 
-  /**
-   * Navigate to a relative path on the UI using BASE_UI_URL.
-   * @param relativePath e.g. "/authors" or "/books"
-   */
-  protected void navigateTo(String relativePath) {
-    page.navigate(BASE_UI_URL + relativePath);
+  protected void navigateTo(String path) {
+    page.navigate(BASE_UI_URL + path);
     page.waitForLoadState(LoadState.NETWORKIDLE);
-
   }
 
   protected void takeScreenshot(String name) {
-    var screenshot = page.screenshot(
-      new Page.ScreenshotOptions().setFullPage(true)
-    );
-
+    var screenshot = page.screenshot(new Page.ScreenshotOptions().setFullPage(true));
     Allure.addAttachment(name, new ByteArrayInputStream(screenshot));
   }
 }
