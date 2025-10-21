@@ -40,7 +40,7 @@ permissions:
   pages: write
   id-token: write
 
-run-name: "Playwright E2E (Java) on ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
+run-name: "Playwright E2E (Java) on ENV: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
 
 jobs:
   playwright-e2e-tests:
@@ -99,7 +99,7 @@ jobs:
           INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
           MATRIX_BROWSER="${{ matrix.browser }}"
 
-          # 👇 Skip if user selected one browser and it doesn't match
+          # Skip matrix jobs that do not match the selected browser (unless 'all')
           if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]; then
             echo "⏭️ Skipping $MATRIX_BROWSER (selected: $INPUT_BROWSER)"
             exit 0
