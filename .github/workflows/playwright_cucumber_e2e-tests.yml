@@ -37,12 +37,19 @@ jobs:
         browser: [chromium, firefox, webkit]
       max-parallel: 3
 
-    # 👇 Only run the job for the selected browser (or all)
-    if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
-
     runs-on: ubuntu-latest
 
     steps:
+      - name: Skip unselected browsers
+        run: |
+          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          MATRIX_BROWSER="${{ matrix.browser }}"
+
+          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]; then
+            echo "⏭️ Skipping $MATRIX_BROWSER (selected: $INPUT_BROWSER)"
+            exit 0
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -117,7 +124,6 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.yml down -v
 
-  # 🧾 Allure Report Publishing Job
   allure-report-publish:
     needs: playwright-e2e-tests
     runs-on: ubuntu-latest
