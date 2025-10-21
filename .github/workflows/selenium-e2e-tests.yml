@@ -16,6 +16,9 @@ on:
         options: [chrome, firefox, all]
         default: all
 
+  repository_dispatch:
+    types: [ trigger_selenium_e2e_tests ]
+
 permissions:
   contents: read
   pages: write
