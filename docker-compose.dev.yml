@@ -55,6 +55,36 @@ services:
       - app-network
     restart: unless-stopped
 
+  e2e-tests:
+    build:
+      context: ./e2e-tests
+      dockerfile: Dockerfile
+    depends_on:
+      - frontend
+      - backend
+    environment:
+      E2E_BASE_URL_UI: "http://frontend:4200"
+      E2E_BASE_URL_API: "http://backend:8080"
+    command: mvn test
+    volumes:
+      - ./e2e-tests:/e2e-tests
+      - ~/.m2:/root/.m2
+    working_dir: /e2e-tests
+
+  api-tests:
+    build:
+      context: ./api-tests
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    environment:
+      API_BASE_URL: "http://backend:8080"
+    command: mvn test
+    volumes:
+      - ./api-tests:/api-tests
+      - ~/.m2:/root/.m2
+    working_dir: /api-tests
+
   selenium-hub:
     image: seleniarm/hub:latest
     container_name: selenium-hub
