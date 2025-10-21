@@ -62,6 +62,8 @@ services:
     depends_on:
       - frontend
       - backend
+    networks:
+      - app-network
     environment:
       E2E_BASE_URL_UI: "http://frontend:4200"
       E2E_BASE_URL_API: "http://backend:8080"

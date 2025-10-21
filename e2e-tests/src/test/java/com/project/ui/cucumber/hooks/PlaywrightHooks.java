@@ -10,10 +10,10 @@ public class PlaywrightHooks {
   public static Page page;
 
   // Base URLs from environment variables, fallback to defaults
-//  public static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
-//  public static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
-  public static final String BASE_UI_URL = "http://localhost:4200";
-  public static final String BASE_API_URL = "http://localhost:8080";
+  public static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
+  public static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
+//  public static final String BASE_UI_URL = "http://localhost:4200";
+//  public static final String BASE_API_URL = "http://localhost:8080";
   @Before
   public void setUp() {
     playwright = Playwright.create();
