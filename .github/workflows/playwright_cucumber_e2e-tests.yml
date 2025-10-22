@@ -170,6 +170,7 @@ jobs:
         run: |
           set -e
           RUN_ID=${{ github.run_id }}
+          SELECTED_BROWSER="${{ github.event.inputs.browser || 'all' }}"
           BROWSERS="chromium firefox webkit"
           SUMMARY_FILE="summary.txt"
           echo "🧾 Allure Report Summary" > $SUMMARY_FILE
@@ -180,13 +181,12 @@ jobs:
             OUT="site-output/site-${b}"
             if [ -d "$SRC" ] && [ "$(ls -A $SRC 2>/dev/null)" ]; then
               echo "➡️ Generating Allure HTML for $b"
-              mkdir -p "$OUT"
-              allure generate "$SRC" -o "$OUT" --clean
+              sudo mkdir -p "$OUT"
+              sudo allure generate "$SRC" -o "$OUT" --clean
               echo "✅ Done generating HTML for $b"
               (cd site-output && zip -r "allure-html-${b}-${RUN_ID}.zip" "site-${b}" > /dev/null)
               echo "✔️ ${b} report generated successfully" >> $SUMMARY_FILE
             else
-              echo "⏭️ No results for $b (skipping)"
               echo "⚠️ ${b} report not generated (no data)" >> $SUMMARY_FILE
             fi
           done
@@ -202,11 +202,21 @@ jobs:
           path: site-output/*.zip
           retention-days: 7
 
-      # 🟢 Publish Chromium HTML report to GitHub Pages automatically
-      - name: Prepare Chromium report for Pages
+      # 🟢 Publish correct report to GitHub Pages
+      - name: Prepare report for GitHub Pages
         run: |
+          SELECTED_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          RUN_ID=${{ github.run_id }}
+
+          if [ "$SELECTED_BROWSER" = "all" ]; then
+            REPORT_BROWSER="chromium"
+          else
+            REPORT_BROWSER="$SELECTED_BROWSER"
+          fi
+
+          echo "🌐 Preparing $REPORT_BROWSER report for GitHub Pages"
           mkdir -p site
-          unzip -q site-output/allure-html-chromium-${{ github.run_id }}.zip -d site
+          unzip -q site-output/allure-html-${REPORT_BROWSER}-${RUN_ID}.zip -d site
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -214,7 +224,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site/site-chromium
+          path: site/site-${{ github.event.inputs.browser == 'all' && 'chromium' || github.event.inputs.browser }}
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -223,7 +233,7 @@ jobs:
       - name: Summary
         run: |
           echo "✅ Allure HTML reports generated for all browsers."
-          echo "🌐 Chromium report published to GitHub Pages at:"
+          echo "🌐 Report published to GitHub Pages at:"
           echo "${{ steps.deployment.outputs.page_url }}"
           echo ""
           echo "🧾 Browser-wise Summary:"
