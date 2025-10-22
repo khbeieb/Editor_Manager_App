@@ -241,6 +241,13 @@ jobs:
 
       - name: Add workflow summary (GitHub UI)
         run: |
+          SELECTED_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          if [ "$SELECTED_BROWSER" = "all" ]; then
+            REPORT_BROWSER="chromium"
+          else
+            REPORT_BROWSER="$SELECTED_BROWSER"
+          fi
+
           {
             echo "### ✅ Allure E2E Test Summary"
             echo ""
@@ -248,9 +255,8 @@ jobs:
             echo "**Tag Suite:** \`${{ github.event.inputs.cucumber_tags || '@regression' }}\`"
             echo ""
             echo "📊 **Reports generated:**"
-            echo "- Chromium → [View on Pages](${{ steps.deployment.outputs.page_url }})"
-            echo "- Firefox → Included in artifacts"
-            echo "- WebKit → Included in artifacts"
+            echo "- ${REPORT_BROWSER^} → [View on Pages](${{ steps.deployment.outputs.page_url }})"
+            echo "- Other browsers → Included in artifacts (if any)"
             echo ""
             echo "🧾 **Artifacts:**"
             echo "- [Allure HTML Reports (ZIP)](../artifacts/allure-html-reports-${{ github.run_id }})"
