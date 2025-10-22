@@ -32,15 +32,10 @@ on:
           - webkit
         default: all
 
-  repository_dispatch:
-    types: [ trigger_e2e_tests ]
-
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-run-name: "Playwright E2E (Java) on ENV: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
+run-name: "Playwright E2E (Java) | Env: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tags: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
 
 jobs:
   playwright-e2e-tests:
@@ -51,11 +46,14 @@ jobs:
         browser: [chromium, firefox, webkit]
       max-parallel: 3
 
+    # ✅ Only run matching browser(s)
+    if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17 and Cache Maven
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -96,92 +94,42 @@ jobs:
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
           TAG_INPUT="${{ github.event.inputs.cucumber_tags || '@regression' }}"
-          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
-          MATRIX_BROWSER="${{ matrix.browser }}"
+          BROWSER="${{ matrix.browser }}"
 
-          # Skip matrix jobs that do not match the selected browser (unless 'all')
-          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]; then
-            echo "⏭️ Skipping $MATRIX_BROWSER (selected: $INPUT_BROWSER)"
-            exit 0
-          fi
-
-          echo "🧪 Running Playwright E2E (Java) | Env: $ENV_NAME | Browser: $MATRIX_BROWSER | Tags: $TAG_INPUT"
+          echo "🧪 Running Playwright E2E (Java) | Env: $ENV_NAME | Browser: $BROWSER | Tags: $TAG_INPUT"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             run --rm \
-            -e TEST_BROWSER=${MATRIX_BROWSER} \
+            -e TEST_BROWSER=${BROWSER} \
             e2e-tests sh -c "
               cd /e2e-tests && \
               mvn clean test \
                 -Dcucumber.filter.tags='$TAG_INPUT' \
-                -Dbrowser=${MATRIX_BROWSER} \
+                -Dbrowser=${BROWSER} \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true
             "
 
-      - name: Upload Allure results (${{ matrix.browser }})
+      - name: Generate Allure HTML report (${{ matrix.browser }})
+        run: |
+          echo "📊 Generating Allure HTML report for ${{ matrix.browser }}"
+          ALLURE_VERSION="2.27.0"
+          curl -L -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
+          unzip -q allure.zip -d /opt
+          sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+          allure generate e2e-tests/target/allure-results -o e2e-tests/target/allure-report --clean
+
+      - name: Upload Allure HTML report (${{ matrix.browser }})
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: allure-results-${{ matrix.browser }}-${{ github.run_id }}
-          path: e2e-tests/target/allure-results
+          name: allure-html-${{ matrix.browser }}-${{ github.run_id }}
+          path: e2e-tests/target/allure-report
           retention-days: 7
 
       - name: Stop stack
         if: always()
         run: docker compose -f docker-compose.yml down -v
-
-  allure-report-publish:
-    needs: playwright-e2e-tests
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download Allure JSON results
-        uses: actions/download-artifact@v4
-        with:
-          path: allure-results
-        continue-on-error: true
-
-      - name: Merge Allure results
-        run: |
-          mkdir -p e2e-tests/target/allure-results
-          cp -r allure-results/*/* e2e-tests/target/allure-results || true
-
-      - name: Install Allure CLI
-        run: |
-          ALLURE_VERSION="2.27.0"
-          curl -L -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
-          unzip allure.zip -d /opt
-          sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
-          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
-
-      - name: Generate Allure HTML report
-        run: |
-          allure generate e2e-tests/target/allure-results -o site --clean
-
-      - name: Upload HTML report as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-html-report-${{ github.run_id }}
-          path: site
-          retention-days: 7
-
-      - name: Setup GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
