@@ -35,7 +35,6 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
       max-parallel: 3
-    if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
 
     steps:
       - name: Checkout repository
@@ -59,6 +58,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # Start stack only once per job
       - name: Start full stack
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
@@ -79,48 +79,51 @@ jobs:
           done
 
       - name: Run Playwright E2E Tests (${{ matrix.browser }})
+        if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
           TAG_INPUT="${{ github.event.inputs.cucumber_tags || '@regression' }}"
-          MATRIX_BROWSER="${{ matrix.browser }}"
+          BROWSER="${{ matrix.browser }}"
 
-          echo "🧪 Running Playwright E2E (Java) | Env: $ENV_NAME | Browser: $MATRIX_BROWSER | Tags: $TAG_INPUT"
+          echo "🧪 Running Playwright E2E (Java) | Env: $ENV_NAME | Browser: $BROWSER | Tags: $TAG_INPUT"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             run --rm \
-            -e TEST_BROWSER=${MATRIX_BROWSER} \
+            -e TEST_BROWSER=${BROWSER} \
             e2e-tests sh -c "
               cd /e2e-tests && \
               mvn clean test \
                 -Dcucumber.filter.tags='$TAG_INPUT' \
-                -Dbrowser=${MATRIX_BROWSER} \
+                -Dbrowser=${BROWSER} \
                 -Dallure.results.directory=target/allure-results \
                 -Dmaven.test.failure.ignore=true
             "
 
-      - name: Generate Allure HTML report (${{ matrix.browser }})
+      - name: Generate Allure HTML Report (${{ matrix.browser }})
+        if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
         run: |
-          mkdir -p e2e-tests/target/allure-report-${{ matrix.browser }}
+          mkdir -p e2e-tests/target/allure-html-${{ matrix.browser }}
           docker run --rm \
             -v "$(pwd)/e2e-tests/target/allure-results:/app/allure-results" \
-            -v "$(pwd)/e2e-tests/target/allure-report-${{ matrix.browser }}:/app/allure-report" \
+            -v "$(pwd)/e2e-tests/target/allure-html-${{ matrix.browser }}:/app/allure-report" \
             frankescobar/allure-docker-service:latest \
             allure generate /app/allure-results -o /app/allure-report --clean
 
-      - name: Upload Allure HTML report (${{ matrix.browser }})
+      - name: Upload HTML Allure Report (${{ matrix.browser }})
+        if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
         uses: actions/upload-artifact@v4
         with:
           name: allure-html-${{ matrix.browser }}-${{ github.run_id }}
-          path: e2e-tests/target/allure-report-${{ matrix.browser }}
+          path: e2e-tests/target/allure-html-${{ matrix.browser }}
           retention-days: 7
 
       - name: Stop stack
         if: always()
         run: docker compose -f docker-compose.yml down -v
 
-  publish-chromium-html-report:
+  publish-chromium-report:
     needs: playwright-e2e-tests
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == 'chromium' }}
@@ -128,44 +131,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Chromium HTML report
+      - name: Download Chromium Allure HTML report
         uses: actions/download-artifact@v4
         with:
           name: allure-html-chromium-${{ github.run_id }}
-          path: e2e-tests/target/allure-report-chromium
+          path: site
 
-      - name: Publish Chromium report to GitHub Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: e2e-tests/target/allure-report-chromium
+          path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-  generate-html-summary:
-    needs: [playwright-e2e-tests, publish-chromium-html-report]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate HTML reports summary
-        run: |
-          SUMMARY_FILE="e2e-tests/target/html-reports-summary.md"
-          mkdir -p e2e-tests/target
-          echo "# Playwright E2E HTML Reports" > $SUMMARY_FILE
-          for BROWSER in chromium firefox webkit; do
-            ARTIFACT_NAME="allure-html-${BROWSER}-${GITHUB_RUN_ID}.zip"
-            echo "- $BROWSER report: [Download HTML artifact](https://github.com/${GITHUB_REPOSITORY}/suites/${GITHUB_RUN_ID}/artifacts/$ARTIFACT_NAME)" >> $SUMMARY_FILE
-          done
-          echo ""
-          echo "Chromium report is also available on GitHub Pages"
-          cat $SUMMARY_FILE
-
-      - name: Upload HTML Reports Summary
-        uses: actions/upload-artifact@v4
-        with:
-          name: html-reports-summary-${{ github.run_id }}
-          path: e2e-tests/target/html-reports-summary.md
-          retention-days: 7
