@@ -10,7 +10,7 @@ on:
         options: ["@smoke", "@regression", "@integration"]
         default: "@regression"
       environment:
-        description: "Select the environment configuration"
+        description: "Select environment configuration"
         required: false
         type: choice
         options: ["dev", "staging", "prod"]
@@ -47,56 +47,39 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Cache Maven repository
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Start full stack
+      - name: Start app stack
         run: |
-          ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
+          ENV_NAME="${{ github.event.inputs.environment }}"
           echo "🚀 Starting app stack for $ENV_NAME"
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             up -d --build db backend frontend
 
-          echo "🕒 Waiting for frontend to be ready..."
+          echo "🕒 Waiting for frontend..."
           for i in {1..20}; do
             if curl -s http://localhost:4200 > /dev/null; then
-              echo "✅ Frontend is up!"
+              echo "✅ Frontend ready"
               break
             fi
-            echo "⏳ Waiting for frontend ($i/20)..."
+            echo "⏳ Waiting frontend ($i/20)"
             sleep 5
           done
 
-      - name: Prepare Allure report directory
-        run: |
-          REPORT_DIR="e2e-tests/target/allure-html-${{ matrix.browser }}"
-          mkdir -p "$REPORT_DIR"
-          sudo chown -R $USER:$USER "$REPORT_DIR"
-
       - name: Run Playwright E2E Tests (${{ matrix.browser }})
         run: |
-          ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
-          TAG_INPUT="${{ github.event.inputs.cucumber_tags || '@regression' }}"
-          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          INPUT_BROWSER="${{ github.event.inputs.browser }}"
           MATRIX_BROWSER="${{ matrix.browser }}"
 
-          # Skip matrix jobs that do not match the selected browser (unless 'all')
           if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]; then
             echo "⏭️ Skipping $MATRIX_BROWSER (selected: $INPUT_BROWSER)"
             exit 0
           fi
 
-          echo "🧪 Running Playwright E2E (Java) | Env: $ENV_NAME | Browser: $MATRIX_BROWSER | Tags: $TAG_INPUT"
+          ENV_NAME="${{ github.event.inputs.environment }}"
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
+
+          echo "🧪 Running E2E | Env: $ENV_NAME | Browser: $MATRIX_BROWSER | Tags: $TAG_INPUT"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
@@ -114,19 +97,20 @@ jobs:
 
       - name: Generate Allure HTML report (${{ matrix.browser }})
         run: |
-          REPORT_DIR="e2e-tests/target/allure-html-${{ matrix.browser }}"
-          mkdir -p "$REPORT_DIR"
-          sudo chown -R $USER:$USER "$REPORT_DIR"
+          REPORT_TMP="/tmp/allure-html-${{ matrix.browser }}"
+          mkdir -p "$REPORT_TMP"
 
           docker run --rm -u $(id -u):$(id -g) \
             -v "$(pwd)/e2e-tests/target/allure-results:/app/allure-results" \
-            -v "$(pwd)/$REPORT_DIR:/app/allure-report" \
+            -v "$REPORT_TMP:/app/allure-report" \
             frankescobar/allure-docker-service:latest \
             allure generate /app/allure-results -o /app/allure-report --clean
 
+          mkdir -p e2e-tests/target/allure-html-${{ matrix.browser }}
+          cp -r "$REPORT_TMP/"* "e2e-tests/target/allure-html-${{ matrix.browser }}/"
+
       - name: Upload Allure HTML report (${{ matrix.browser }})
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: allure-html-${{ matrix.browser }}-${{ github.run_id }}
           path: e2e-tests/target/allure-html-${{ matrix.browser }}
@@ -138,13 +122,13 @@ jobs:
 
   publish-chromium-report:
     needs: playwright-e2e-tests
-    if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == 'chromium' }}
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == 'chromium' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Chromium Allure report
+      - name: Download Chromium HTML report
         uses: actions/download-artifact@v4
         with:
           name: allure-html-chromium-${{ github.run_id }}
