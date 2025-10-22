@@ -7,40 +7,25 @@ on:
         description: "Select the Cucumber tag suite to run"
         required: false
         type: choice
-        options:
-          - "@smoke"
-          - "@regression"
-          - "@integration"
+        options: ["@smoke", "@regression", "@integration"]
         default: "@regression"
       environment:
         description: "Select the environment configuration"
         required: false
         type: choice
-        options:
-          - dev
-          - staging
-          - prod
-        default: dev
+        options: ["dev", "staging", "prod"]
+        default: "dev"
       browser:
         description: "Select browser (or all)"
         required: false
         type: choice
-        options:
-          - all
-          - chromium
-          - firefox
-          - webkit
-        default: all
-
-  repository_dispatch:
-    types: [ trigger_e2e_tests ]
+        options: ["all", "chromium", "firefox", "webkit"]
+        default: "all"
 
 permissions:
   contents: read
   pages: write
   id-token: write
-
-run-name: "Playwright E2E (Java) | Env: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
 
 jobs:
   playwright-e2e-tests:
@@ -50,6 +35,7 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
       max-parallel: 3
+    if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
 
     steps:
       - name: Checkout repository
@@ -96,14 +82,7 @@ jobs:
         run: |
           ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
           TAG_INPUT="${{ github.event.inputs.cucumber_tags || '@regression' }}"
-          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
           MATRIX_BROWSER="${{ matrix.browser }}"
-
-          # Skip non-selected browsers
-          if [ "$INPUT_BROWSER" != "all" ] && [ "$INPUT_BROWSER" != "$MATRIX_BROWSER" ]; then
-            echo "⏭️ Skipping $MATRIX_BROWSER (selected: $INPUT_BROWSER)"
-            exit 0
-          fi
 
           echo "🧪 Running Playwright E2E (Java) | Env: $ENV_NAME | Browser: $MATRIX_BROWSER | Tags: $TAG_INPUT"
 
@@ -121,127 +100,72 @@ jobs:
                 -Dmaven.test.failure.ignore=true
             "
 
-      - name: Upload Allure results (${{ matrix.browser }})
+      - name: Generate Allure HTML report (${{ matrix.browser }})
+        run: |
+          mkdir -p e2e-tests/target/allure-report-${{ matrix.browser }}
+          docker run --rm \
+            -v "$(pwd)/e2e-tests/target/allure-results:/app/allure-results" \
+            -v "$(pwd)/e2e-tests/target/allure-report-${{ matrix.browser }}:/app/allure-report" \
+            frankescobar/allure-docker-service:latest \
+            allure generate /app/allure-results -o /app/allure-report --clean
+
+      - name: Upload Allure HTML report (${{ matrix.browser }})
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: allure-results-${{ matrix.browser }}-${{ github.run_id }}
-          path: e2e-tests/target/allure-results
+          name: allure-html-${{ matrix.browser }}-${{ github.run_id }}
+          path: e2e-tests/target/allure-report-${{ matrix.browser }}
           retention-days: 7
 
       - name: Stop stack
         if: always()
         run: docker compose -f docker-compose.yml down -v
 
-
-  allure-report-publish:
+  publish-chromium-html-report:
     needs: playwright-e2e-tests
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
+    if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == 'chromium' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare directories
-        run: |
-          mkdir -p merged-allure-results
-          mkdir -p site-output
-
-      - name: Download Allure JSON results for each browser
+      - name: Download Chromium HTML report
         uses: actions/download-artifact@v4
         with:
-          path: merged-allure-results
-        continue-on-error: true
+          name: allure-html-chromium-${{ github.run_id }}
+          path: e2e-tests/target/allure-report-chromium
 
-      - name: Install Allure CLI
-        run: |
-          ALLURE_VERSION="2.27.0"
-          curl -sL -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
-          unzip -q allure.zip -d /opt
-          sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
-          sudo ln -sf /opt/allure/bin/allure /usr/local/bin/allure
-          allure --version
-
-      - name: Generate and upload per-browser Allure HTML reports
-        id: generate_reports
-        run: |
-          set -e
-          RUN_ID=${{ github.run_id }}
-          BROWSERS="chromium firefox webkit"
-          SUMMARY_FILE="summary.txt"
-          echo "🧾 Allure Report Summary" > $SUMMARY_FILE
-          echo "==========================" >> $SUMMARY_FILE
-
-          for b in $BROWSERS; do
-            SRC=$(find merged-allure-results -type d -name "allure-results-${b}-${RUN_ID}" | head -n 1)
-            OUT="site-output/site-${b}"
-            if [ -d "$SRC" ] && [ "$(ls -A $SRC 2>/dev/null)" ]; then
-              echo "➡️ Generating Allure HTML for $b"
-              mkdir -p "$OUT"
-              allure generate "$SRC" -o "$OUT" --clean
-              echo "✅ Done generating HTML for $b"
-              (cd site-output && zip -r "allure-html-${b}-${RUN_ID}.zip" "site-${b}" > /dev/null)
-              echo "✔️ ${b} report generated successfully" >> $SUMMARY_FILE
-            else
-              echo "⏭️ No results for $b (skipping)"
-              echo "⚠️ ${b} report not generated (no data)" >> $SUMMARY_FILE
-            fi
-          done
-
-          echo "" >> $SUMMARY_FILE
-          echo "📦 Artifacts stored as: allure-html-reports-${RUN_ID}" >> $SUMMARY_FILE
-          cat $SUMMARY_FILE
-
-      - name: Upload per-browser HTML report artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-html-reports-${{ github.run_id }}
-          path: site-output/*.zip
-          retention-days: 7
-
-      # 🟢 Publish Chromium HTML report to GitHub Pages automatically
-      - name: Prepare Chromium report for Pages
-        run: |
-          mkdir -p site
-          unzip -q site-output/allure-html-chromium-${{ github.run_id }}.zip -d site
-
-      - name: Setup GitHub Pages
+      - name: Publish Chromium report to GitHub Pages
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site/site-chromium
+          path: e2e-tests/target/allure-report-chromium
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Summary
+  generate-html-summary:
+    needs: [playwright-e2e-tests, publish-chromium-html-report]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate HTML reports summary
         run: |
-          echo "✅ Allure HTML reports generated for all browsers."
-          echo "🌐 Chromium report published to GitHub Pages at:"
-          echo "${{ steps.deployment.outputs.page_url }}"
+          SUMMARY_FILE="e2e-tests/target/html-reports-summary.md"
+          mkdir -p e2e-tests/target
+          echo "# Playwright E2E HTML Reports" > $SUMMARY_FILE
+          for BROWSER in chromium firefox webkit; do
+            ARTIFACT_NAME="allure-html-${BROWSER}-${GITHUB_RUN_ID}.zip"
+            echo "- $BROWSER report: [Download HTML artifact](https://github.com/${GITHUB_REPOSITORY}/suites/${GITHUB_RUN_ID}/artifacts/$ARTIFACT_NAME)" >> $SUMMARY_FILE
+          done
           echo ""
-          echo "🧾 Browser-wise Summary:"
-          cat summary.txt
+          echo "Chromium report is also available on GitHub Pages"
+          cat $SUMMARY_FILE
 
-      - name: Add workflow summary (GitHub UI)
-        run: |
-          {
-            echo "### ✅ Allure E2E Test Summary"
-            echo ""
-            echo "**Environment:** \`${{ github.event.inputs.environment || 'dev' }}\`"
-            echo "**Tag Suite:** \`${{ github.event.inputs.cucumber_tags || '@regression' }}\`"
-            echo ""
-            echo "📊 **Reports generated:**"
-            echo "- Chromium → [View on Pages](${{ steps.deployment.outputs.page_url }})"
-            echo "- Firefox → Included in artifacts"
-            echo "- WebKit → Included in artifacts"
-            echo ""
-            echo "🧾 **Artifacts:**"
-            echo "- [Allure HTML Reports (ZIP)](../artifacts/allure-html-reports-${{ github.run_id }})"
-          } >> $GITHUB_STEP_SUMMARY
+      - name: Upload HTML Reports Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-reports-summary-${{ github.run_id }}
+          path: e2e-tests/target/html-reports-summary.md
+          retention-days: 7
