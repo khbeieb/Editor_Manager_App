@@ -34,8 +34,10 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
-run-name: "Playwright E2E (Java) | Env: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tags: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
+run-name: "Playwright E2E (Java) | Env: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
 
 jobs:
   playwright-e2e-tests:
@@ -45,8 +47,6 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
       max-parallel: 3
-
-    # ✅ Only run matching browser(s)
     if: ${{ github.event.inputs.browser == 'all' || github.event.inputs.browser == matrix.browser }}
 
     steps:
@@ -112,12 +112,11 @@ jobs:
                 -Dmaven.test.failure.ignore=true
             "
 
-      - name: Generate Allure HTML report (${{ matrix.browser }})
+      - name: Generate Allure HTML report
         run: |
-          echo "📊 Generating Allure HTML report for ${{ matrix.browser }}"
           ALLURE_VERSION="2.27.0"
           curl -L -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
-          unzip -q allure.zip -d /opt
+          unzip allure.zip -d /opt
           sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
           sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
           allure generate e2e-tests/target/allure-results -o e2e-tests/target/allure-report --clean
@@ -133,3 +132,17 @@ jobs:
       - name: Stop stack
         if: always()
         run: docker compose -f docker-compose.yml down -v
+
+  summary:
+    needs: playwright-e2e-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate workflow summary
+        run: |
+          echo "## ✅ Playwright E2E Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser | HTML Report |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|--------------|" >> $GITHUB_STEP_SUMMARY
+          for browser in chromium firefox webkit; do
+            echo "| $browser | [Download HTML Report (artifact)](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
