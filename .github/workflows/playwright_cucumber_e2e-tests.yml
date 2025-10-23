@@ -40,7 +40,7 @@ permissions:
   pages: write
   id-token: write
 
-run-name: "Playwright E2E (Java) | Env: ${{ github.event.inputs.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
+run-name: "Playwright E2E (Java) | Env: ${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }} | Browser: ${{ github.event.inputs.browser || github.event.client_payload.browser || 'all' }} | Tag: ${{ github.event.inputs.cucumber_tags || github.event.client_payload.cucumber_tags || '@regression' }}"
 
 jobs:
   playwright-e2e-tests:
@@ -75,7 +75,7 @@ jobs:
 
       - name: Start full stack
         run: |
-          ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
+          ENV_NAME="${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}"
           echo "🚀 Starting app stack for $ENV_NAME"
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
@@ -94,9 +94,9 @@ jobs:
 
       - name: Run Playwright E2E Tests (${{ matrix.browser }})
         run: |
-          ENV_NAME="${{ github.event.inputs.environment || 'dev' }}"
-          TAG_INPUT="${{ github.event.inputs.cucumber_tags || '@regression' }}"
-          INPUT_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          ENV_NAME="${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}"
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags || github.event.client_payload.cucumber_tags || '@regression' }}"
+          INPUT_BROWSER="${{ github.event.inputs.browser || github.event.client_payload.browser || 'all' }}"
           MATRIX_BROWSER="${{ matrix.browser }}"
 
           # Skip non-selected browsers
@@ -170,7 +170,7 @@ jobs:
         run: |
           set -e
           RUN_ID=${{ github.run_id }}
-          SELECTED_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          SELECTED_BROWSER="${{ github.event.inputs.browser || github.event.client_payload.browser || 'all' }}"
           BROWSERS="chromium firefox webkit"
           SUMMARY_FILE="summary.txt"
           echo "🧾 Allure Report Summary" > $SUMMARY_FILE
@@ -205,7 +205,7 @@ jobs:
       # 🟢 Publish correct report to GitHub Pages
       - name: Prepare report for GitHub Pages
         run: |
-          SELECTED_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          SELECTED_BROWSER="${{ github.event.inputs.browser || github.event.client_payload.browser || 'all' }}"
           RUN_ID=${{ github.run_id }}
 
           if [ "$SELECTED_BROWSER" = "all" ]; then
@@ -217,6 +217,7 @@ jobs:
           echo "🌐 Preparing $REPORT_BROWSER report for GitHub Pages"
           mkdir -p site
           unzip -q site-output/allure-html-${REPORT_BROWSER}-${RUN_ID}.zip -d site
+          echo "REPORT_BROWSER=$REPORT_BROWSER" >> $GITHUB_ENV
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -224,7 +225,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site/site-${{ github.event.inputs.browser == 'all' && 'chromium' || github.event.inputs.browser }}
+          path: site/site-${{ env.REPORT_BROWSER }}
 
       - name: Deploy to GitHub Pages
         id: deployment
@@ -241,7 +242,7 @@ jobs:
 
       - name: Add workflow summary (GitHub UI)
         run: |
-          SELECTED_BROWSER="${{ github.event.inputs.browser || 'all' }}"
+          SELECTED_BROWSER="${{ github.event.inputs.browser || github.event.client_payload.browser || 'all' }}"
           if [ "$SELECTED_BROWSER" = "all" ]; then
             REPORT_BROWSER="chromium"
           else
@@ -251,8 +252,8 @@ jobs:
           {
             echo "### ✅ Allure E2E Test Summary"
             echo ""
-            echo "**Environment:** \`${{ github.event.inputs.environment || 'dev' }}\`"
-            echo "**Tag Suite:** \`${{ github.event.inputs.cucumber_tags || '@regression' }}\`"
+            echo "**Environment:** \`${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}\`"
+            echo "**Tag Suite:** \`${{ github.event.inputs.cucumber_tags || github.event.client_payload.cucumber_tags || '@regression' }}\`"
             echo ""
             echo "📊 **Reports generated:**"
             echo "- ${REPORT_BROWSER^} → [View on Pages](${{ steps.deployment.outputs.page_url }})"
