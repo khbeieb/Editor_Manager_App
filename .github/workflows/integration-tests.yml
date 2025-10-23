@@ -19,15 +19,15 @@ on:
           - dev
           - staging
           - prod
-  repository_dispatch: # ADDED: To be triggered by the scheduled runner
-    types: [ trigger_e2e_tests ] # Matches the event-type in the scheduled runner
+  repository_dispatch:
+    types: [ trigger_api_tests ]
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-run-name: "Integration Test Run on ENV: ${{ github.event.inputs.environment || 'dev' }} TAG: ${{ github.event.inputs.cucumber_tags || '@regression' }}"
+run-name: "API Integration Tests | Env: ${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }} | Tag: ${{ github.event.inputs.cucumber_tags || github.event.client_payload.cucumber_tags || '@regression' }}"
 
 jobs:
   integration-tests:
@@ -37,7 +37,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17 and Cache Maven
+      - name: ☕ Set up JDK 17 and Cache Maven
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -55,33 +55,42 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      # ✅ Start backend + db stack (always, even if triggered automatically)
       - name: Start backend stack
         run: |
-          ENV_NAME="${{ github.event.inputs.environment }}"
-          ENV_NAME=${ENV_NAME:-"dev"}
+          ENV_NAME="${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}"
+          echo "Starting backend stack for environment: $ENV_NAME"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
             up -d --build db backend
 
+          echo "Waiting for backend to be ready..."
+          for i in {1..20}; do
+            if curl -s http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "✅ Backend is up!"
+              break
+            fi
+            echo "⏳ Waiting for backend ($i/20)..."
+            sleep 5
+          done
+
+      # ✅ Run API tests inside the same compose network
       - name: Run API Tests and generate Allure results
         if: always()
         run: |
-          TAG_INPUT="${{ github.event.inputs.cucumber_tags }}"
-          ENV_NAME="${{ github.event.inputs.environment }}"
-
-          TAG_INPUT=${TAG_INPUT:-"@regression"}
-          ENV_NAME=${ENV_NAME:-"dev"}
-
+          TAG_INPUT="${{ github.event.inputs.cucumber_tags || github.event.client_payload.cucumber_tags || '@regression' }}"
+          ENV_NAME="${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}"
           JUNIT_TAG="${TAG_INPUT//@/}"
 
-          echo "Running tests with Tags: $TAG_INPUT | Env: $ENV_NAME"
+          echo "Running API tests | Env: $ENV_NAME | Tags: $TAG_INPUT"
 
           docker compose \
             --env-file ./config/.env.${ENV_NAME} \
             -f docker-compose.yml \
-            run --rm api-tests sh -c "
+            run --rm \
+            api-tests sh -c "
               cd /api-tests && \
               mvn clean test \
                 -Dcucumber.filter.tags='$TAG_INPUT' \
@@ -101,7 +110,8 @@ jobs:
 
       - name: Stop stack
         if: always()
-        run: docker compose -f docker-compose.yml down
+        run: docker compose -f docker-compose.yml down -v
+
 
   allure-report-publish:
     needs: integration-tests
@@ -111,10 +121,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout repository
+      - name: 🧾 Checkout repository
         uses: actions/checkout@v4
 
-      # Download existing JSON results artifact
       - name: Download Allure JSON results
         uses: actions/download-artifact@v4
         with:
@@ -124,18 +133,17 @@ jobs:
       - name: Install Allure CLI
         run: |
           ALLURE_VERSION="2.27.0"
-          curl -L -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
-          unzip allure.zip -d /opt
+          curl -sL -o "allure.zip" "https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip"
+          unzip -q allure.zip -d /opt
           sudo mv /opt/allure-$ALLURE_VERSION /opt/allure
-          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+          sudo ln -sf /opt/allure/bin/allure /usr/local/bin/allure
+          allure --version
 
-      # Rebuild HTML from the downloaded JSON results
       - name: Generate Allure HTML report
         run: |
           allure generate api-tests/target/allure-results -o site --clean
 
-      # Zip the HTML site for easy download
-      - name: Prepare Allure HTML report as ZIP
+      - name: Zip Allure HTML site
         run: |
           cd site
           zip -r ../allure-html-report.zip .
@@ -148,7 +156,7 @@ jobs:
           path: allure-html-report.zip
           retention-days: 7
 
-      - name: Setup Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
@@ -159,3 +167,18 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Add summary to GitHub UI
+        run: |
+          {
+            echo "### ✅ API Integration Test Summary"
+            echo ""
+            echo "**Environment:** \`${{ github.event.inputs.environment || github.event.client_payload.environment || 'dev' }}\`"
+            echo "**Tag Suite:** \`${{ github.event.inputs.cucumber_tags || github.event.client_payload.cucumber_tags || '@regression' }}\`"
+            echo ""
+            echo "🌐 **Allure Report:** [View on Pages](${{ steps.deployment.outputs.page_url }})"
+            echo ""
+            echo "🧩 **Artifacts:**"
+            echo "- [Allure JSON Results](../artifacts/allure-results-api-${{ github.run_id }})"
+            echo "- [Allure HTML (ZIP)](../artifacts/allure-html-report-api-${{ github.run_id }})"
+          } >> $GITHUB_STEP_SUMMARY
