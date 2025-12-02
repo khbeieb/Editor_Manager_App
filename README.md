@@ -10,11 +10,11 @@ Editor Manager App is a full-stack application for managing authors and books. I
 
 ```
 .
-├── backend/         # Java Spring Boot backend
-├── frontend/        # Angular frontend
-├── api-tests/       # API and Cucumber integration tests (Java, Playwright)
-├── e2e-tests/       # E2E UI tests (Java, Playwright, Cucumber)
-├── e2e-selenium/    # E2E UI tests (Java, Selenium, TestNG)
+├── backend/         # Java Spring Boot backend (see [backend/README.md](backend/README.md))
+├── frontend/        # Angular frontend (see [frontend/README.md](frontend/README.md))
+├── api-tests/       # API and Cucumber integration tests (see [api-tests/README.md](api-tests/README.md))
+├── e2e-tests/       # E2E UI tests with Playwright + Cucumber (see [e2e-tests/README.md](e2e-tests/README.md))
+├── e2e-selenium/    # E2E UI tests with Selenium + TestNG (see [e2e-selenium/README.md](e2e-selenium/README.md))
 ├── config/          # Environment variable files
 ├── .github/workflows/ # CI/CD workflows
 ├── docker-compose*.yml # Docker Compose files for different environments
@@ -24,6 +24,8 @@ Editor Manager App is a full-stack application for managing authors and books. I
 ├── run-e2e.sh       # Script to run Playwright E2E tests
 ├── run_e2e_selenium.sh # Script to run Selenium E2E tests
 ```
+
+> 📖 **For detailed documentation**, see the README files in each module directory.
 
 ---
 
@@ -37,6 +39,8 @@ Editor Manager App is a full-stack application for managing authors and books. I
 - Node.js & npm (for local frontend)
 
 ### 1. Backend
+
+See [backend/README.md](backend/README.md) for detailed setup and running instructions.
 
 #### Run with Docker Compose
 
@@ -53,9 +57,13 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
+For more options and configuration details, see [backend/README.md](backend/README.md).
+
 ---
 
 ### 2. Frontend
+
+See [frontend/README.md](frontend/README.md) for detailed setup and running instructions.
 
 #### Run with Docker Compose
 
@@ -71,11 +79,15 @@ ng serve
 
 Visit [http://localhost:4200](http://localhost:4200).
 
+For more options and configuration details, see [frontend/README.md](frontend/README.md).
+
 ---
 
 ## Running Tests
 
 ### 1. API Tests
+
+See [api-tests/README.md](api-tests/README.md) for detailed documentation.
 
 - **Run locally or in Docker:**
 
@@ -90,6 +102,8 @@ Visit [http://localhost:4200](http://localhost:4200).
 
 ### 2. API + Cucumber Integration Tests
 
+See [api-tests/README.md](api-tests/README.md) for detailed documentation.
+
 - **Run locally or in Docker:**
 
 ```sh
@@ -102,6 +116,8 @@ Visit [http://localhost:4200](http://localhost:4200).
 ---
 
 ### 3. E2E UI Tests (Playwright + Cucumber)
+
+See [e2e-tests/README.md](e2e-tests/README.md) for detailed documentation.
 
 - **Run locally or in Docker:**
 
@@ -119,6 +135,8 @@ Visit [http://localhost:4200](http://localhost:4200).
 ---
 
 ### 4. E2E UI Tests (Selenium + TestNG)
+
+See [e2e-selenium/README.md](e2e-selenium/README.md) for detailed documentation.
 
 - **Run locally or in Docker:**
 
