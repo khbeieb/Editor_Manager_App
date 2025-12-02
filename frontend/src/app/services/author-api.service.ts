@@ -29,4 +29,18 @@ export class AuthorApiService {
       })
     );
   }
+
+  deleteAuthor(authorId: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${environment.apiUrl}/authors/${authorId}`).pipe(
+      catchError((error) => {
+        console.error('Error deleting author:', error);
+        return of({
+          statusCode: 500,
+          message: 'Failed to delete author',
+          data: null,
+          timestamp: new Date().toISOString(),
+        } as ApiResponse<void>);
+      })
+    );
+  }
 }

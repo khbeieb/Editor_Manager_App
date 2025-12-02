@@ -12,10 +12,11 @@ import { SelectModule } from 'primeng/select';
 import { RouterLink, Router } from '@angular/router';
 import { Observable, BehaviorSubject, combineLatest, Subject } from 'rxjs';
 import { map, startWith, takeUntil, catchError, finalize } from 'rxjs/operators';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { Author } from '../../../models/author.model';
 import { ApiResponse } from '../../../models/api-response.model';
 import { FormsModule } from '@angular/forms';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 interface FilterOptions {
   searchTerm: string;
@@ -42,9 +43,10 @@ interface FilterOptions {
     ProgressSpinnerModule,
     InputTextModule,
     SelectModule,
-    RouterLink
+    RouterLink,
+    ConfirmDialogModule
   ],
-  providers: [MessageService],
+  providers: [MessageService, ConfirmationService],
   templateUrl: './author-list.component.html' ,
   styleUrls: ['./author-list.component.scss'],
 })
@@ -87,6 +89,7 @@ export class AuthorListComponent implements OnInit, OnDestroy {
   constructor(
     private authorApiService: AuthorApiService,
     private messageService: MessageService,
+    private confirmationService: ConfirmationService,
     private router: Router
   ) {}
 
@@ -311,11 +314,61 @@ export class AuthorListComponent implements OnInit, OnDestroy {
   }
 
   deleteAuthor(author: Author): void {
-    this.messageService.add({
-      severity: 'warn',
-      summary: 'Delete Author',
-      detail: `Delete functionality for ${author.name}`,
-      life: 3000
+    if (!author.id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Cannot delete author: Invalid author ID',
+        life: 3000
+      });
+      return;
+    }
+
+    const bookCount = author.books?.length || 0;
+    const bookMessage = bookCount > 0 
+      ? ` This will also delete ${bookCount} book${bookCount > 1 ? 's' : ''} associated with this author.`
+      : '';
+
+    this.confirmationService.confirm({
+      message: `Are you sure you want to delete "${author.name}"?${bookMessage}`,
+      header: 'Confirm Deletion',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      rejectButtonStyleClass: 'p-button-secondary p-button-outlined',
+      accept: () => {
+        this.performDelete(author);
+      }
     });
   }
+
+  private performDelete(author: Author): void {
+    if (!author.id) return;
+
+    this.authorApiService.deleteAuthor(author.id).subscribe({
+      next: (response) => {
+        console.log("response.statusCode", response.statusCode)
+        if (response.statusCode === 200) {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Author Deleted',
+            detail: `${author.name} has been successfully deleted.`,
+            life: 3000
+          });
+          // Reload the authors list
+          this.loadAuthors();
+        } else {
+          throw new Error(response.message || 'Failed to delete author');
+        }
+      },
+      error: (error) => {
+        console.error('Failed to delete author:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Deletion Failed',
+          detail: error.error?.message || error.message || 'Failed to delete author. Please try again.',
+          life: 5000
+        });
+      }
+    });
   }
+}

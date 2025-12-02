@@ -8,11 +8,17 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResponseStatusException(ResponseStatusException ex) {
+        return buildResponse(HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason());
+    }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException ex) {

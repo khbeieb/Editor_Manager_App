@@ -66,7 +66,7 @@ public class AuthorService {
     // Delete all books of this author
     List<Book> books = bookRepository.findAll()
       .stream()
-      .filter(b -> b.getAuthor().getId().equals(authorId))
+      .filter(b -> b.getAuthor() != null && b.getAuthor().getId().equals(authorId))
       .toList();
 
     System.out.println("Deleting books for author " + author.getName() + ": " + books.size());

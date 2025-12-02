@@ -1,11 +1,15 @@
 {
-  "/api/*": {
+  "/api": {
     "target": "http://backend:8080",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",
     "pathRewrite": {
       "^/api": ""
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
     }
   }
 }
