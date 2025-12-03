@@ -1,8 +1,18 @@
 #!/bin/bash
 set -e
 
+# Usage: ./run-e2e.sh [ENV] [BROWSER] [RUN_MODE]
+#   ENV: dev (default) or prod
+#   BROWSER: chromium, firefox, webkit, or all (default: all)
+#   RUN_MODE: local or docker (default: docker)
+# Examples:
+#   ./run-e2e.sh dev chromium local    # Run locally with chromium
+#   ./run-e2e.sh dev all docker        # Run in Docker with all browsers
+#   ./run-e2e.sh dev all               # Run in Docker (default)
+
 ENV=${1:-dev}
 BROWSER=${2:-all}
+RUN_MODE=${3:-docker}  # 'local' or 'docker' (default: docker)
 
 CONFIG_FILE="./config/.env.$ENV"
 DOCKER_COMPOSE_OVERRIDE="docker-compose.$ENV.yml"
@@ -10,13 +20,46 @@ ALLURE_RESULTS_DIR="./e2e-tests/target/allure-results"
 ALLURE_REPORT_DIR="./e2e-tests/target/allure-report"
 PORT=8083
 
-echo "🧪 Running Playwright E2E Cucumber tests for environment: $ENV | Browser: $BROWSER"
+# Base URLs based on run mode
+if [[ "$RUN_MODE" == "local" ]]; then
+  E2E_BASE_URL_UI="${E2E_BASE_URL_UI:-http://localhost:4200}"
+  E2E_BASE_URL_API="${E2E_BASE_URL_API:-http://localhost:8080}"
+  echo "🏠 Running in LOCAL mode"
+else
+  E2E_BASE_URL_UI="${E2E_BASE_URL_UI:-http://frontend:4200}"
+  E2E_BASE_URL_API="${E2E_BASE_URL_API:-http://backend:8080}"
+  echo "🐳 Running in DOCKER mode"
+fi
+
+echo "🧪 Running Playwright E2E Cucumber tests for environment: $ENV | Browser: $BROWSER | Mode: $RUN_MODE"
+echo "📍 UI Base URL: $E2E_BASE_URL_UI"
+echo "📍 API Base URL: $E2E_BASE_URL_API"
 
 # ---------------------------
-# Step 0: Validate files
+# Step 0: Validate files and prerequisites
 # ---------------------------
-[[ ! -f "$CONFIG_FILE" ]] && echo "❌ $CONFIG_FILE not found!" && exit 1
-[[ ! -f "$DOCKER_COMPOSE_OVERRIDE" ]] && echo "❌ $DOCKER_COMPOSE_OVERRIDE not found!" && exit 1
+if [[ "$RUN_MODE" == "docker" ]]; then
+  [[ ! -f "$CONFIG_FILE" ]] && echo "❌ $CONFIG_FILE not found!" && exit 1
+  [[ ! -f "$DOCKER_COMPOSE_OVERRIDE" ]] && echo "❌ $DOCKER_COMPOSE_OVERRIDE not found!" && exit 1
+elif [[ "$RUN_MODE" == "local" ]]; then
+  # Check if Maven is available
+  if ! command -v mvn &> /dev/null; then
+    echo "❌ Maven (mvn) is not installed or not in PATH. Required for local mode."
+    exit 1
+  fi
+  # Check if e2e-tests directory exists
+  [[ ! -d "e2e-tests" ]] && echo "❌ e2e-tests directory not found!" && exit 1
+  # Optional: Check if services are accessible (warn if not)
+  if ! curl -s --connect-timeout 2 "$E2E_BASE_URL_UI" > /dev/null 2>&1; then
+    echo "⚠️  Warning: Cannot reach UI at $E2E_BASE_URL_UI. Make sure services are running."
+  fi
+  if ! curl -s --connect-timeout 2 "$E2E_BASE_URL_API" > /dev/null 2>&1; then
+    echo "⚠️  Warning: Cannot reach API at $E2E_BASE_URL_API. Make sure services are running."
+  fi
+else
+  echo "❌ Invalid RUN_MODE: $RUN_MODE. Must be 'local' or 'docker'"
+  exit 1
+fi
 
 # ---------------------------
 # Step 1: Clean old results
@@ -32,19 +75,43 @@ run_playwright_tests() {
   local browser=$1
   echo "🔄 Running Playwright E2E tests on browser: $browser..."
 
-  docker compose \
-    --env-file "$CONFIG_FILE" \
-    --file docker-compose.yml \
-    --file "$DOCKER_COMPOSE_OVERRIDE" \
-    run --rm -T e2e-tests sh -c "
-      cd /e2e-tests && \
-      mvn clean test \
-        -Dmaven.test.failure.ignore=true \
-        -Dallure.results.directory=target/allure-results/${browser} \
-        -Dtest='com.project.ui.*Test,CucumberE2ERunnerTest' \
-        -Dbrowser=${browser} \
-        -Dcucumber.features=src/test/resources/features
-    " && echo "✅ ${browser} tests passed" || echo "❌ ${browser} tests failed"
+  if [[ "$RUN_MODE" == "local" ]]; then
+    # Run tests locally
+    (cd e2e-tests && \
+    export E2E_BASE_URL_UI="$E2E_BASE_URL_UI" \
+    export E2E_BASE_URL_API="$E2E_BASE_URL_API" && \
+    mvn clean test \
+      -Dmaven.test.failure.ignore=true \
+      -Dallure.results.directory=target/allure-results/${browser} \
+      -Dtest='com.project.ui.*Test,CucumberE2ERunnerTest' \
+      -Dbrowser=${browser} \
+      -Dcucumber.features=src/test/resources/features \
+      -De2e.base.url.ui="$E2E_BASE_URL_UI" \
+      -De2e.base.url.api="$E2E_BASE_URL_API") \
+    && echo "✅ ${browser} tests passed" || echo "❌ ${browser} tests failed"
+  else
+    # Run tests in Docker
+    docker compose \
+      --env-file "$CONFIG_FILE" \
+      --file docker-compose.yml \
+      --file "$DOCKER_COMPOSE_OVERRIDE" \
+      run --rm -T \
+      -e E2E_BASE_URL_UI="$E2E_BASE_URL_UI" \
+      -e E2E_BASE_URL_API="$E2E_BASE_URL_API" \
+      e2e-tests sh -c "
+        cd /e2e-tests && \
+        export E2E_BASE_URL_UI='$E2E_BASE_URL_UI' && \
+        export E2E_BASE_URL_API='$E2E_BASE_URL_API' && \
+        mvn clean test \
+          -Dmaven.test.failure.ignore=true \
+          -Dallure.results.directory=target/allure-results/${browser} \
+          -Dtest='com.project.ui.*Test,CucumberE2ERunnerTest' \
+          -Dbrowser=${browser} \
+          -Dcucumber.features=src/test/resources/features \
+          -De2e.base.url.ui='$E2E_BASE_URL_UI' \
+          -De2e.base.url.api='$E2E_BASE_URL_API'
+      " && echo "✅ ${browser} tests passed" || echo "❌ ${browser} tests failed"
+  fi
 }
 
 # ---------------------------

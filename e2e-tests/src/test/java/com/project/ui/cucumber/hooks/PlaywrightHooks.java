@@ -9,11 +9,14 @@ public class PlaywrightHooks {
   public static Browser browser;
   public static Page page;
 
-  // Base URLs from environment variables, fallback to defaults
-  public static final String BASE_UI_URL = System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://frontend:4200");
-  public static final String BASE_API_URL = System.getenv().getOrDefault("E2E_BASE_URL_API", "http://backend:8080");
-//  public static final String BASE_UI_URL = "http://localhost:4200";
-//  public static final String BASE_API_URL = "http://localhost:8080";
+  // Base URLs from Maven system properties (set by run-e2e.sh based on run mode)
+  // Local mode: http://localhost:4200 / http://localhost:8080
+  // Docker mode: http://frontend:4200 / http://backend:8080
+  // Fallback to environment variables for backward compatibility
+  public static final String BASE_UI_URL = System.getProperty("e2e.base.url.ui", 
+    System.getenv().getOrDefault("E2E_BASE_URL_UI", "http://localhost:4200"));
+  public static final String BASE_API_URL = System.getProperty("e2e.base.url.api", 
+    System.getenv().getOrDefault("E2E_BASE_URL_API", "http://localhost:8080"));
   @Before
   public void setUp() {
     playwright = Playwright.create();
